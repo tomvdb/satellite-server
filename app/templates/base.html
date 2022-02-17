@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <title>Satellite Server</title>
+
+
+
+  <!-- Bootstrap core CSS -->
+  <link href="/static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+    integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+    crossorigin="" />
+
+  <style>
+    .bd-placeholder-img {
+      font-size: 1.125rem;
+      text-anchor: middle;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      user-select: none;
+    }
+
+    @media (min-width: 768px) {
+      .bd-placeholder-img-lg {
+        font-size: 3.5rem;
+      }
+    }
+
+    .utctime {
+      color : white;
+    }
+  </style>
+
+
+  <!-- Custom styles for this template -->
+  <!-- <link href="navbar-top-fixed.css" rel="stylesheet"> -->
+  <style>
+    body {
+      min-height: 75rem;
+      padding-top: 4.5rem;
+    }
+  </style>
+
+  {% block style %}{% endblock %}
+
+</head>
+
+<body>
+
+  <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">Satellite Server</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse"
+        aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarCollapse">
+        <ul class="navbar-nav me-auto mb-2 mb-md-0">
+          <li class="nav-item">
+            <a class="nav-link" aria-current="page" href="/">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('view_collections') }}">Collections</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('view_satellites') }}">Satellites</a>
+          </li>
+        </ul>
+        <div id="utc_time" class="utctime"></div>
+
+      </div>
+    </div>
+  </nav>
+
+  <main class="container-fluid">
+
+    <div class="content-wrapper">
+      <!-- Content Header (Page header) -->
+      <div class="content-header">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+
+        {% for category, message in messages %}
+        {% if category == 'message' %}
+        <div class="alert alert-info" role="alert">{{ message }}</div>
+        {% else %}
+        <div class="alert alert-{{category}}" role="alert"> {{ message }}</div>
+        {% endif %}
+
+
+        {% endfor %}
+
+        {% endif %}
+        {% endwith %}
+      </div>
+
+
+
+      {% block content %}{% endblock %}
+
+  </main>
+
+  <script src="https://unpkg.com/dayjs@1.8.21/dayjs.min.js"></script>
+  <script src="https://unpkg.com/dayjs@1.8.21/plugin/utc.js"></script>
+  <script>dayjs.extend(window.dayjs_plugin_utc)</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.10.7/plugin/relativeTime.min.js" integrity="sha512-7YYTlJ8OTdmDMztOy8q+zfRI/+y/IWnVp1oS4kiTKa+X2P09k/ObWUemEjtMoumu8v4A0s1NZu7WjfR+UxhRCQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>    
+  <script>dayjs.extend(window.dayjs_plugin_relativeTime)</script>
+
+  <script src="/static/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+    integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+    crossorigin=""></script>
+
+  <script src="/static/js/leaflet.geometryutil.js"></script>
+  <script src="/static/js/leaflet-arrowheads.js"></script>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+
+  {% block scripts %}{% endblock %}
+
+  <script>
+    var utctime = document.getElementById("utc_time");
+
+    (function updateTime()
+    {
+      utctime.innerHTML = new dayjs().utc().format('YYYY/MM/DD HH:mm:ss')  
+      setTimeout(updateTime, 1000); 
+    })();
+
+  </script>
+
+</body>
+
+</html>

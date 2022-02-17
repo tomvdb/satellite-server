@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-header">{{ title }}</div>
+    <div class="card-body">
+        <table class="table table-striped">
+        {% for satellite in satellites %}        
+        <tr>
+            <td><a href="{{ url_for('view_satellite', satellite_id=satellite.satellite_id )}}">{{ satellite.Satellite.satellite_name }}</a></td>
+        </tr>
+        {% endfor %}
+        </table>
+
+    </div>
+  </div>
+  
+{% endblock %}

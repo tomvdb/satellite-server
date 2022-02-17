@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% from 'bootstrap5/form.html' import render_form %}
+
+
+{% block content %}
+
+<div class="row">
+    <div class="col-md-8">
+
+        <div class="card">
+            <div class="card-header">
+                {{ title }}
+            </div>
+            <div class="card-body">
+                {{ render_form (form) }}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                Query Satnogs DB
+            </div>
+            <div class="card-body">
+                <form>
+                    <div class="mb-3">
+                        <input type="text" class="form-control" id="noradinput" aria-describedby="noradHelp">
+                        <div id="noradHelp" class="form-text">Satellite Norad ID</div>
+                    </div>
+                </form>
+                <input type="button" class="btn btn-primary" onclick="retrieveData();" value="Retrieve">
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+    function populateForm(data) {
+        console.log(data);
+
+        if ( data.length > 0)
+        {
+            satellite_name.value = data[0].tle0
+            satellite_norad_id.value = data[0].norad_cat_id
+            satellite_tle0.value = data[0].tle0
+            satellite_tle1.value = data[0].tle1
+            satellite_tle2.value = data[0].tle2
+        }
+
+    }
+
+    function retrieveData() {
+        var noradid = noradinput.value;
+
+        if (isNaN(noradid)) {
+            console.log("Input is not a number")
+        }
+        else {
+            $.ajax({
+                url: "https://db.satnogs.org/api/tle/?format=json&norad_cat_id=" + noradid,
+                type: 'GET',
+                dataType: 'json',
+                success: function (res) {
+                    populateForm(res)
+                }
+            }).then(function () {
+                //setTimeout(update, 1000); 
+            });
+
+        }
+    }
+
+</script>
+
+{% endblock %}

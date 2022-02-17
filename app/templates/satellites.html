@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-header">All Satellites</div>
+    <div class="card-body">
+        <table class="table">
+        {% for satellite in satellites %}        
+        <tr>
+            <td><a href="{{ url_for('view_satellite', satellite_id=satellite.satellite_id )}}">{{ satellite.satellite_name }}</a></td>
+            <td><a href="{{ url_for('add_satellite_collection', satellite_id=satellite.satellite_id)}}">Add to Collection</a></td>
+            <td><a href="{{ url_for('delete_satellite', satellite_id=satellite.satellite_id)}}">Delete</a></td>
+        </tr>
+        {% endfor %}
+        </table>
+
+        <a class='btn btn-primary' href="{{ url_for('add_satellite') }}" class="card-link">Add Satellite</a>        
+    </div>
+  </div>
+  
+{% endblock %}

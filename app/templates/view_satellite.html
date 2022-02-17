@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<row>
+  <div class="col-6">
+
+    <div class="card">
+      <div class="card-header">
+        {{ satellite.satellite_name }}
+      </div>
+      <div class="card-body">
+        <table class="table">
+          <thead>
+            <th colspan="2">Properties</th>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Norad ID</b></td>
+              <td>{{ satellite.satellite_norad_id }}</td>
+            </tr>
+
+            <tr>
+              <td><b>tle0</b></td>
+              <td>{{ satellite.satellite_tle0 }}</td>
+            </tr>
+
+            <tr>
+              <td><b>tle1</b></td>
+              <td>{{ satellite.satellite_tle1 }}</td>
+            </tr>
+
+            <tr>
+              <td><b>tle2</b></td>
+              <td>{{ satellite.satellite_tle2 }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</row>
+
+<row>
+  <div class="card">
+    <div class="card-header">
+      Upcoming Passes
+    </div>
+    <div class="card-body">
+      <table class="table">
+        <thead>
+          <th>AOS</th>
+          <th>TCA</th>
+          <th>LOS</th>
+          <th>AOS Azimuth</th>
+          <th>Max Elevation</th>
+        </thead>
+        <tbody>
+        {% for pass in future_passes.passes %}
+        <tr>
+          <td>{{ pass['satellite_rise'].strftime('%Y/%m/%d %H:%M') }}</td>
+          <td>{{ pass['satellite_cumulation'].strftime('%Y/%m/%d %H:%M') }}</td>
+          <td>{{ pass['satellite_set'].strftime('%Y/%m/%d %H:%M') }}</td>
+          <td>{{ "%.2f" | format(pass['azimuth'])  }}</td>
+          <td>{{ "%.2f" | format(pass['cumulation_elevation']) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      </table>
+    </div>
+  </div>
+</row>
+
+{% endblock %}

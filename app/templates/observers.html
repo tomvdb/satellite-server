@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-header">Observers</div>
+    <div class="card-body">
+        <table class="table">
+        <thead>
+            <th>Observer Name</th>
+            <th>Coordinates</th>
+            <th>Elevation</th>
+            <th>Default</th>
+            
+        </thead>
+        {% for observer in observers %}        
+        <tr>
+            <td>{{ observer.observer_name }}</td>
+            <td>{{ observer.observer_latitude }}, {{ observer.observer_longitude }}</td>
+            <td>{{ observer.observer_elevation }}</td>
+            <td>
+                {% if observer.observer_default == 1 %}
+                <b>Yes</b>
+                {% else %}
+                <a href="{{ url_for('make_observer_default', observer_id = observer.observer_id ) }}">Make Default</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </table>
+
+        <a class='btn btn-primary' href="{{ url_for('create_observer') }}" class="card-link">Add Observer</a>        
+    </div>
+  </div>
+  
+{% endblock %}

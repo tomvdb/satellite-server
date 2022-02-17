@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        Satellite Collections
+    </div>
+    <div class="card-body">
+        <table class="table table-striped ">
+            <tbody>
+        {% for collection in collections %}        
+        <tr>
+            <td><a href="{{ url_for('view_collection', collection_id=collection.collection_id )}}">{{ collection.collection_name }}</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+        </table>
+
+        <a class='btn btn-primary' href="{{ url_for('create_collection') }}" class="card-link">Create Collection</a>        
+    </div>
+  </div>
+  
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+</script>
+
+{% endblock %}
