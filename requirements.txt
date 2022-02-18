@@ -1,0 +1,7 @@
+Bootstrap-Flask==2.0.1
+Flask==1.1.2
+Flask-Bootstrap==3.3.7.1
+Flask-SQLAlchemy==2.5.1
+Flask-WTF==1.0.0
+skyfield==1.42
+SQLAlchemy==1.4.31

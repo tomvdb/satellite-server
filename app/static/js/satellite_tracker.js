@@ -452,6 +452,13 @@
 
   $(document).ready(function () {
     getSatelliteList();
-    connectWS("ws://localhost:1880/ws/rotator", rotatorConnectionOpen, rotatorConnectionClosed, rotatorConnectionMessageReceived);
+
+    try {
+      connectWS("ws://localhost:1880/ws/rotator", rotatorConnectionOpen, rotatorConnectionClosed, rotatorConnectionMessageReceived);
+    }
+    catch(err) {
+      console.log("Couldn't connect to rotator websocket")
+    }    
+    
   });
   
