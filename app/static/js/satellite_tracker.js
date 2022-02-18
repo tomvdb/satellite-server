@@ -452,6 +452,6 @@
 
   $(document).ready(function () {
     getSatelliteList();
-    connectWS("ws://192.168.0.250:1880/ws/rotator", rotatorConnectionOpen, rotatorConnectionClosed, rotatorConnectionMessageReceived);
+    connectWS("ws://localhost:1880/ws/rotator", rotatorConnectionOpen, rotatorConnectionClosed, rotatorConnectionMessageReceived);
   });
   

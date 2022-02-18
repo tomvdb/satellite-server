@@ -1,5 +1,5 @@
 from app import db
-from app.models import Satellite, SatelliteCollection,
+from app.models import SatelliteCollection
 
 db.create_all()
 
