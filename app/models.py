@@ -34,15 +34,3 @@ class Satellite(db.Model):
     def __repr__(self):
         return '<Satellite {}>'.format(self.satellite_name)
 
-class Observer(db.Model):
-    __tablename__ = "observer"
-
-    observer_id = db.Column(db.Integer, primary_key=True)
-    observer_name = db.Column(db.Text, nullable=False)
-    observer_latitude = db.Column(db.Text, nullable=False)
-    observer_longitude = db.Column(db.Text, nullable=False)    
-    observer_elevation = db.Column(db.Integer, nullable=False)
-    observer_default = db.Column(db.Integer, nullable=False)
-    
-    def __repr__(self):
-        return '<Observer {}>'.format(self.observer_name)

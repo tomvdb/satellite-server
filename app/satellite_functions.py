@@ -1,5 +1,5 @@
 from app import app, db
-from app.models import Satellite, SatelliteCollection, SatelliteCollectionAssignmment, Observer
+from app.models import Satellite, SatelliteCollection, SatelliteCollectionAssignmment
 from datetime import datetime, timedelta
 import time
 from math import degrees, pi, sqrt, acos, cos
@@ -7,6 +7,11 @@ import math
 from skyfield.api import load, wgs84, EarthSatellite, Distance
 from skyfield.positionlib import Geocentric
 from skyfield.api import utc
+
+def get_satellite_record(tle0, tle1, tle2):
+    ts = load.timescale()
+    satellite = EarthSatellite(tle1, tle2, tle0, ts)
+    return satellite
 
 
 def get_next_pass(tle0, tle1, tle2, latitude, longitude, horizon):
@@ -23,8 +28,6 @@ def get_next_pass(tle0, tle1, tle2, latitude, longitude, horizon):
 
     if passes['passes_count'] == 0:
         return None
-
-    #print(passes['passes'][0])
 
     satrise = passes['passes'][0]['satellite_rise']
     satset = passes['passes'][0]['satellite_set']

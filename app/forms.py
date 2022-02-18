@@ -18,10 +18,11 @@ class AddSatelliteCollectionForm(FlaskForm):
     collection_name = SelectField('Collection: ', validators=[DataRequired()], coerce=int)
     submit = SubmitField('Add to Collection') 
 
+'''
 class AddObserverForm(FlaskForm):
     observer_name = StringField('Observer Name', validators=[DataRequired()])
     observer_latitude = StringField('Observer Latitude', validators=[DataRequired()])
     observer_longitude = StringField('Observer Longitude', validators=[DataRequired()])
     observer_elevation = StringField('Observer Elevation', validators=[DataRequired()])
     submit = SubmitField('Save') 
-    
+'''

@@ -5,18 +5,50 @@
 <div class="card">
     <div class="card-header">All Satellites</div>
     <div class="card-body">
-        <table class="table">
-        {% for satellite in satellites %}        
-        <tr>
-            <td><a href="{{ url_for('view_satellite', satellite_id=satellite.satellite_id )}}">{{ satellite.satellite_name }}</a></td>
-            <td><a href="{{ url_for('add_satellite_collection', satellite_id=satellite.satellite_id)}}">Add to Collection</a></td>
-            <td><a href="{{ url_for('delete_satellite', satellite_id=satellite.satellite_id)}}">Delete</a></td>
-        </tr>
-        {% endfor %}
+        <table class="table table-bordered">
+            <thead>
+                <th>Satellite Name</th>
+                <th>Epoch Days</th>
+                <th>Collections</th>
+                <th>Actions</th>
+            </thead>
+            <tbody>
+                {% for satellite in satellites %}
+                <tr>
+                    <td><a href="{{ url_for('view_satellite', satellite_id=satellite.satellite_id )}}">{{
+                            satellite.satellite_name }}</a>
+
+                            {% if satellite.outdated == True %}
+                            - <span class="badge bg-warning text-dark">Outdated</span>
+                            {% endif %}
+                        
+                        </td>
+                        <td>
+                            {% if satellite.satellite_epoch_days < 10 %}
+                            <span class="badge bg-success text-light">
+                            {% else %}
+                            <span class="badge bg-warning text-light">
+                            {% endif %}
+                            {{ "%.2f"|format(satellite.satellite_epoch_days) }}</span>
+                        </td>
+                    <td>
+                        <ul>
+                        {% for collection in satellite.satellite_collection %}
+                        <li>{{ collection }}</li>
+                        {% endfor %}
+                        </ul>
+                    </td>
+                    <td><a href="{{ url_for('add_satellite_collection', satellite_id=satellite.satellite_id)}}">Add to
+                            Collection</a> - 
+                    <a href="{{ url_for('edit_satellite', satellite_id=satellite.satellite_id)}}">Edit</a> -
+                    <a href="{{ url_for('delete_satellite', satellite_id=satellite.satellite_id)}}">Delete</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
 
-        <a class='btn btn-primary' href="{{ url_for('add_satellite') }}" class="card-link">Add Satellite</a>        
+        <a class='btn btn-primary' href="{{ url_for('add_satellite') }}" class="card-link">Add Satellite</a>
     </div>
-  </div>
-  
+</div>
+
 {% endblock %}

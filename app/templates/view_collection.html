@@ -3,16 +3,40 @@
 {% block content %}
 
 <div class="card">
-    <div class="card-header">{{ title }}</div>
+    <div class="card-header">{{ title }} [<a href='{{ url_for("view_collections") }}'>Back</a>]</div>
     <div class="card-body">
-        <table class="table table-striped">
-        {% for satellite in satellites %}        
-        <tr>
-            <td><a href="{{ url_for('view_satellite', satellite_id=satellite.satellite_id )}}">{{ satellite.Satellite.satellite_name }}</a></td>
-        </tr>
-        {% endfor %}
-        </table>
+        <table class="table table-bordered">
+            <thead>
+                <th>Satellite Name</th>
+                <th>Epoch Days</th>
+                <th>Actions</th>
+            </thead>
+            <tbody>
+                {% for satellite in satellites %}
+                <tr>
+                    <td><a href="{{ url_for('view_satellite', satellite_id=satellite.satellite_id )}}">{{
+                            satellite.satellite_name }}</a>
 
+                            {% if satellite.outdated == True %}
+                            - <span class="badge bg-warning text-dark">Outdated</span>
+                            {% endif %}
+                        
+                        </td>
+                        <td>
+                            {% if satellite.satellite_epoch_days < 10 %}
+                            <span class="badge bg-success text-light">
+                            {% else %}
+                            <span class="badge bg-warning text-light">
+                            {% endif %}
+                            {{ "%.2f"|format(satellite.satellite_epoch_days) }}</span>
+                        </td>
+                    <td><a href="{{ url_for('remove_satellite_collection', collection_id=collection_id, satellite_id=satellite.satellite_id)}}">Remove from
+                            Collection</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
   </div>
   

@@ -1,20 +1,4 @@
-/* global satellite moment */
-/* exported calcPolarPlotSVG */
 
-/**
- * @typedef {Object} timeframe
- * @property {Date} start - Start of the observation.
- * @property {Date} end - End of the observation.
- */
-
-/**
- * Returns a polar plot of a pass at the given groundstation as SVG in a string.
- *
- * @param {timeframe} Timeframe of the oberservation.
- * @param {groundstation} The observing groundstation.
- * @param {tleLine1} TLE line 1 of the observed satellite.
- * @param {tleLine2} TLE line 2 of the observed satellite.
- */
 function calcPolarPlotSVG(timeframe, groundstation, tleLine1, tleLine2) {
     'use strict';
 

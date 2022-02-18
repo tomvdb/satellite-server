@@ -1,22 +1,48 @@
 from flask import render_template, flash, redirect, url_for
 from app import app, db
-from app.models import Satellite, SatelliteCollection, SatelliteCollectionAssignmment,  Observer
+from app.models import Satellite, SatelliteCollection, SatelliteCollectionAssignmment
 from datetime import datetime
-
+from skyfield.api import load, wgs84, EarthSatellite, Distance
 from app.forms import CreateSatelliteForm
 
-from app.satellite_functions import calc_future_passes
+from app.satellite_functions import calc_future_passes, get_satellite_record
+
+
 
 @app.route('/view_satellites')
 def view_satellites():    
     satellites = Satellite.query.all()
+    ts = load.timescale()
 
-    return render_template('satellites.html', title='Satellites', satellites = satellites)
+    satlist = []
+    for sat in satellites:
+        satRecord = get_satellite_record(sat.satellite_tle0, sat.satellite_tle1, sat.satellite_tle2)
+        
+        satObject = {}
+        satObject['satellite_id'] = sat.satellite_id
+        satObject['satellite_name'] = sat.satellite_name
+        
+        days = ts.now() - satRecord.epoch
+
+        if abs(days) > 10:
+            satObject['outdated'] = True
+        else:
+            satObject['outdated'] = False
+
+        satObject['satellite_epoch_days'] = days
+        satObject['satellite_collection'] = []
+
+        # get collections for this sat
+        collections = SatelliteCollectionAssignmment.query.filter_by(satellite_id=sat.satellite_id).all()
+        for collection in collections:
+            satObject['satellite_collection'].append(collection.Collection.collection_name)
+
+        satlist.append(satObject)
+
+    return render_template('satellites.html', title='Satellites', satellites = satlist)
 
 @app.route('/add_satellite', methods=['GET', 'POST'])
 def add_satellite():    
-    collections = SatelliteCollection.query.all()
-
     form = CreateSatelliteForm()
 
     if form.validate_on_submit():
@@ -40,7 +66,39 @@ def add_satellite():
             return redirect(url_for('view_satellites'))        
 
     return render_template('add_satellite_form.html', title='Add Satellite',  form = form)
-       
+
+@app.route('/edit_satellite/<satellite_id>', methods=['GET', 'POST'])
+def edit_satellite(satellite_id):    
+    satellite = Satellite.query.filter_by(satellite_id=satellite_id).first()
+    
+    if satellite == None:
+        flash("Sorry, that satellite doesn't exist")
+        return redirect(url_for('view_satellites'))    
+
+    form = CreateSatelliteForm()
+
+    if form.validate_on_submit():
+        satellite.satellite_name = form.satellite_name.data
+        satellite.satellite_norad_id  = form.satellite_norad_id.data
+        satellite.satellite_tle0 = form.satellite_tle0.data
+        satellite.satellite_tle1 = form.satellite_tle1.data
+        satellite.satellite_tle2 = form.satellite_tle2.data
+
+        db.session.add(satellite)
+        db.session.commit()
+
+        flash( "Satellite has been updated")
+        return redirect(url_for('view_satellites'))        
+
+    form.satellite_name.data = satellite.satellite_name
+    form.satellite_norad_id.data = satellite.satellite_norad_id
+    form.satellite_tle0.data = satellite.satellite_tle0
+    form.satellite_tle1.data = satellite.satellite_tle1
+    form.satellite_tle2.data = satellite.satellite_tle2
+
+    return render_template('add_satellite_form.html', title='Add Satellite',  form = form)
+
+
 @app.route('/delete_satellite/<satellite_id>', methods=['GET', 'POST'])
 def delete_satellite(satellite_id):
     sat = Satellite.query.filter_by(satellite_id=satellite_id).first()
@@ -70,14 +128,7 @@ def view_satellite(satellite_id):
         return redirect(url_for('view_satellites'))        
 
     # get default observer
-    observer = Observer.query.filter_by(observer_default = 1).first()
-
-    future_passes = None
-
-    if observer == None:
-        flash("No Default Observer Specified")
-    else:
-        future_passes = calc_future_passes(satellite.satellite_tle0, satellite.satellite_tle1, satellite.satellite_tle2, float(observer.observer_latitude), float(observer.observer_longitude), 10, 5)
+    future_passes = calc_future_passes(satellite.satellite_tle0, satellite.satellite_tle1, satellite.satellite_tle2, float(config['qty_latitude']), float(config['qty_longitude']), 10, 5)
 
     print(future_passes)
     

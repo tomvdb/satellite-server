@@ -2,32 +2,7 @@
 
 {% block style %}
 
-<style>
-  #map {
-    height: 800px;
-  }
-
-  .arrow-icon {
-    width: 14px;
-    height: 14px;
-  }
-
-  .arrow-icon>div {
-    margin-left: -1px;
-    margin-top: -3px;
-    transform-origin: center center;
-    font: 12px/1.5 "Helvetica Neue", Arial, Helvetica, sans-serif;
-  }
-
-  .gap {
-    margin-top: 10px;
-
-  }
-
-  .small {
-    font: 10px sans-serif;
-  }
-</style>
+<link href="/static/css/custom.css" rel="stylesheet">
 
 {% endblock %}
 
@@ -40,61 +15,9 @@
         <div id="map"></div>
       </div>
     </div>
-  </div>
 
-  <div class="col-4">
-    <div class="card">
-      <div class="card-header">
-        <div id="prop_title"></div>
-      </div>
-      <div class="card-body">
-        <table class="table table-bordered">
-
-          <tr>
-            <td><b>Countdown</b></td>
-            <td>
-              <div id="prop_countdown"></div>
-            </td>
-          </tr>
-          <tr>
-            <td><b>Azimuth</b></td>
-            <td>
-              <div id="prop_az"></div>
-            </td>
-          </tr>
-          <tr>
-            <td><b>Elevation</b></td>
-            <td>
-              <div id="prop_el"></div>
-            </td>
-          </tr>
-          <tr>
-            <td><b>Range</b></td>
-            <td>
-              <div id="prop_range"></div>
-            </td>
-          </tr>
-
-        </table>
-
-        <center><svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="polar" width="80%" height="80%"
-            viewBox="-120 -120 240 240" overflow="hidden">
-          </svg></center>
-
-      </div>
-
-      <div class="card-footer text-muted">
-        <button type="button" class="btn btn-danger">Track Satellite</button>
-      </div>      
+    <div class="row gap">
     </div>
-    </row>
-
-  </div>
-
-</div>
-
-<div class="row gap">
-  <div class="col-12">
 
     <div class="card">
       <div class="card-header">
@@ -118,534 +41,103 @@
         </table>
       </div>
     </div>
+
   </div>
+
+  <div class="col-4">
+    <div class="card">
+      <div class="card-header">
+        <div id="prop_title"></div>
+      </div>
+
+      <div class="card-body">
+        <div class="table-responsive w-100">
+          <table class="table table-bordered">
+
+            <tr>
+              <td><b>Countdown</b></td>
+              <td>
+                <div id="prop_countdown"></div>
+              </td>
+            </tr>
+            <tr>
+              <td><b>Azimuth</b></td>
+              <td>
+                <div id="prop_az"></div>
+              </td>
+            </tr>
+            <tr>
+              <td><b>Elevation</b></td>
+              <td>
+                <div id="prop_el"></div>
+              </td>
+            </tr>
+            <tr>
+              <td><b>Range</b></td>
+              <td>
+                <div id="prop_range"></div>
+              </td>
+            </tr>
+
+          </table>
+          <center><svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="polar" width="80%" height="80%"
+              viewBox="-120 -120 240 240" overflow="hidden"></center>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="row gap">
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        Rotator Control
+      </div>
+      <div class="card-body">
+
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="" id="rotatorEnabled">
+          <label class="form-check-label" for="flexCheckDefault">
+            Enable Rotator
+
+          </label>
+        </div>
+        <div class="table table-responsive">
+          <table class="table table-bordered" width=100%>
+            <tr>
+              <td>Requested</td>
+              <td id="rot_requested_az">000.00</td>
+              <td id="rot_requested_el">000.00</td>
+            </tr>
+            <tr>
+              <td>Actual</td>
+              <td id="rot_actual_az">000.00</td>
+              <td id="rot_actual_el">000.00</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+  </div>
+
 </div>
+
 {% endblock %}
 
 
 {% block scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/satellite.js/4.1.2/satellite.min.js"></script>
-<script src="/static/js/moment.min.js"></script>
+
+<script src="/static/js/icons.js"></script>
 <script src="/static/js/polar.js"></script>
 <script src="/static/js/polar_svg.js"></script>
-
-<script>
-
-  // satellite properties
-  var selectedSatellite = null;
-
-  //var prop_title = document.getElementById("prop_title");
-
-
-  // icons
-  var outRangeIcon = L.icon({
-    iconUrl: '/static/images/satellite_inactive.png',
-
-    iconSize: [32, 32], // size of the icon
-    iconAnchor: [15, 15], // point of the icon which will correspond to marker's location
-    popupAnchor: [0, -10] // point from which the popup should open relative to the iconAnchor
-  });
-
-  var qth = L.icon({
-    iconUrl: '/static/images/home.png',
-
-    iconSize: [32, 32], // size of the icon
-    iconAnchor: [15, 15], // point of the icon which will correspond to marker's location
-    popupAnchor: [0, -10] // point from which the popup should open relative to the iconAnchor
-  });
-
-
-  var inRangeIcon = L.icon({
-    iconUrl: '/static/images/satellite_active.png',
-
-    iconSize: [32, 32], // size of the icon
-    iconAnchor: [15, 15], // point of the icon which will correspond to marker's location
-    popupAnchor: [0, -10] // point from which the popup should open relative to the iconAnchor
-  });
-
-  var southWest = L.latLng(-90, -180),
-    northEast = L.latLng(90, 180);
-  var bounds = L.latLngBounds(southWest, northEast);
-  var mymap = L.map('map', { center: bounds.getCenter(), maxBounds: bounds, maxBoundsViscosity: 1.0, minZoom: 2, }).setView([0, 0], 2);
-  var layerGroup = L.layerGroup().addTo(mymap);
-  var observer = L.marker([0, 0], { icon: qth, title: 'Observer' }).addTo(mymap);
-
-  var table = document.getElementById("satellitelist");
-
-  //L.rectangle(bounds, {color: "#ff7800", weight: 1}).addTo(mymap);
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    subdomains: ['a', 'b', 'c']
-  }).addTo(mymap);
-
-
-  /*
-  mymap.setMaxBounds(bounds);
-  mymap.on('drag', function () {
-    mymap.panInsideBounds(bounds, { animate: false });
-  });
-
-  */
-
-  var satellites = []
-
-  function getSatelliteByTitle(arr, value) {
-
-    for (var i = 0, iLen = arr.length; i < iLen; i++) {
-      if (arr[i].title == value) return arr[i];
-    }
-
-    return null
-  }
-
-  var observerGd = {
-    longitude: 0,
-    latitude: 0,
-    height: 0.370
-  };
-
-  function updateSat(satrec, dateobject) {
-    //console.log(satrec);
-
-    var gmst = satellite.gstime(dateobject);
-    var positionAndVelocity = satellite.propagate(satrec, dateobject);
-    var positionEci = positionAndVelocity.position;
-    var velocityEci = positionAndVelocity.velocity;
-    var positionGd = satellite.eciToGeodetic(positionEci, gmst);
-    var positionEcf = satellite.eciToEcf(positionEci, gmst);
-    var lookAngles = satellite.ecfToLookAngles(observerGd, positionEcf);
-    return [positionGd, lookAngles]
-  }
-
-  function updateData(jsondata) {
-    console.log(jsondata);
-    layerGroup.clearLayers();
-
-    // update satellites
-    jsondata.satellites.forEach(element => {
-      for (var i = 0, iLen = satellites.length; i < iLen; i++) {
-        if (satellites[i].title == element.title) {
-          var nextpass = []
-          for (var x = 0; x < element.next_pass.passdata.length; x++) {
-            nextpass.push([element.next_pass.passdata[x].latitude, element.next_pass.passdata[x].longitude])
-          }
-
-          satellites[i].next_pass_data = nextpass
-
-          //satObject.orbit_data = orbit
-          satellites[i].all_data = element
-
-          break;
-        }
-      }
-    })
-  };
-
-  var once = 0;
-
-  function updateSelectedSatellite() {
-    if (selectedSatellite == null)
-      return
-
-    satelliteData = selectedSatellite;
-
-    //console.log(satelliteData.satrec);
-
-    var satdata = updateSat(satelliteData.satrec, new Date())
-
-    var positionGd = satdata[0]
-    var lookAngles = satdata[1]
-
-    // satellite properties
-    prop_title.innerHTML = satelliteData.title
-    prop_az.innerHTML = satellite.radiansToDegrees(lookAngles.azimuth).toFixed(2)
-    prop_el.innerHTML = satellite.radiansToDegrees(lookAngles.elevation).toFixed(2)
-    prop_range.innerHTML = lookAngles.rangeSat.toFixed(0)
-
-    var satrise = new dayjs(satelliteData.all_data.next_pass.satrise)
-
-        var difference = satrise.toDate().getTime() - (new Date().getTime())
-
-        var hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        var minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-
-        prop_countdown.innerHTML = hours.toString().padStart(2, '0') + ":" + minutes.toString().padStart(2, '0');
-
-
-    // draw next pass
-    layerGroup.clearLayers();
-    var polyline = L.polyline(satelliteData.next_pass_data).arrowheads({ size: '20px', frequency: 'endonly' });
-    polyline.addTo(layerGroup);
-
-    // draw orbit
-
-    orbit = []
-    var start = new dayjs(new Date())
-    var end = new dayjs(new Date(satelliteData.all_data.next_pass.satrise))
-
-    var prevLat = 0;
-    var prevLon = 0;
-
-    for (var t = start; t < end; t = t.add(20, 's')) {
-      var position = updateSat(satelliteData.satrec, t.toDate())
-
-      newLat = satellite.radiansToDegrees(position[0].latitude);
-      newLon = satellite.radiansToDegrees(position[0].longitude)
-
-      if (Math.abs(newLat - prevLat) > 10) {
-        var polyline = L.polyline(orbit, { color: 'black' });
-        polyline.addTo(layerGroup);
-        orbit = []
-      }
-
-      if (Math.abs(newLon - prevLon) > 10) {
-        var polyline = L.polyline(orbit, { color: 'black' });
-        polyline.addTo(layerGroup);
-        orbit = []
-      }
-
-      orbit.push([newLat, newLon])
-
-      prevLat = satellite.radiansToDegrees(position[0].latitude)
-      prevLon = satellite.radiansToDegrees(position[0].longitude)
-    }
-    var polyline = L.polyline(orbit, { color: 'black' });
-    polyline.addTo(layerGroup);
-
-
-
-    // draw polar graph
-
-    var tleLine1 = satelliteData.tle1
-    var tleLine2 = satelliteData.tle2
-
-    var timeframe = {
-      start: new dayjs(new Date(satelliteData.all_data.next_pass.satrise)),
-      end: new dayjs(new Date(satelliteData.all_data.next_pass.satset))
-    };
-
-
-    var groundstation = {
-      lon: observerGd.longitude,
-      lat: observerGd.latitude,
-      alt: 0
-    };
-
-
-    var polarPlotSVG = calcPolarPlotSVG(timeframe,
-      groundstation,
-      tleLine1,
-      tleLine2);
-
-    var based = '<path fill="none" stroke="black" stroke-width="1" d="M 0 -90 v 180 M -90 0 h 180"></path> \
-          <circle fill="none" stroke="black" cx="0" cy="0" r="30"></circle> \
-          <circle fill="none" stroke="black" cx="0" cy="0" r="60"></circle> \
-          <circle fill="none" stroke="black" cx="0" cy="0" r="90"></circle> \
-          <text x="-3" y="-96" class="small"> \
-            0° \
-          </text> \
-          <text x="-8" y="105" class="small"> \
-            180° \
-          </text> \
-          <text x="96" y="4" class="small"> \
-            90° \
-          </text> \
-          <text x="-112" y="4" class="small"> \
-           270° \
-          </text> \
-      '
-
-
-    $('svg#polar').html(based);
-    $('svg#polar').append(polarPlotSVG);
-  }
-
-  function selectSatellite(marker) {
-    console.log(marker.properties.title)
-    satelliteData = getSatelliteByTitle(satellites, marker.properties.title);
-
-    if (marker.options.icon.options.iconUrl.search("satellite_active") == -1) {
-      marker.setIcon(inRangeIcon)
-    }
-
-
-    if (satelliteData == null) {
-      console.log("error: can't find satellite object")
-    }
-    else {
-      selectedSatellite = satelliteData
-      updateSelectedSatellite();
-    }
-  }
-
-  function initMap(jsondata) {
-    console.log(jsondata);
-    layerGroup.clearLayers();
-
-    observer_lat = jsondata.observer.coordinates[0];
-    observer_lon = jsondata.observer.coordinates[1];
-
-    observerGd.latitude = satellite.degreesToRadians(observer_lat)
-    observerGd.longitude = satellite.degreesToRadians(observer_lon)
-
-    observer.setLatLng([observer_lat, observer_lon]).update();
-
-    var first = 0;
-
-    // update satellites
-    jsondata.satellites.forEach(element => {
-
-      // does our satellite exist in list ?
-      satelliteData = getSatelliteByTitle(satellites, element.title);
-
-      if (satelliteData == null) {
-        // create a new one
-
-        var marker = L.marker([0, 0], { 'title': element.title, icon: outRangeIcon })
-
-        marker.bindTooltip(element.title,
-          {
-            permanent: true,
-            direction: 'right'
-          });
-
-        marker.properties = {}
-        marker.properties.title = element.title
-
-        marker.on('click', function (ev) {
-          console.log("clicked")
-          selectSatellite(ev.target)
-        });
-
-
-        var addedMarker = marker.addTo(mymap)
-
-        satObject = { 'title': element.title, 'marker': addedMarker, 'tle1': element.tle1, 'tle2': element.tle2 }
-
-        var satrec = satellite.twoline2satrec(element.tle1, element.tle2);
-
-        var satdata = updateSat(satrec, new Date())
-
-        var positionGd = satdata[0]
-        var lookAngles = satdata[1]
-
-
-        var lat = satellite.radiansToDegrees(positionGd.latitude);
-        var lon = satellite.radiansToDegrees(positionGd.longitude);
-
-        satObject.marker.setLatLng([lat, lon]).update()
-        satObject.satrec = satrec
-
-
-        var nextpass = []
-        for (var x = 0; x < element.next_pass.passdata.length; x++) {
-          nextpass.push([element.next_pass.passdata[x].latitude, element.next_pass.passdata[x].longitude])
-        }
-
-        satObject.next_pass_data = nextpass
-
-        //satObject.orbit_data = orbit
-        satObject.all_data = element
-
-        var newRow = table.insertRow();
-        var satname = newRow.insertCell();
-        var sataz = newRow.insertCell();
-        var satel = newRow.insertCell();
-        var satrange = newRow.insertCell();
-        var countdown = newRow.insertCell();
-        var nextpassaos = newRow.insertCell();
-        var nextpassmax = newRow.insertCell();
-        var nextpasslos = newRow.insertCell();
-        var maxel = newRow.insertCell();
-
-        satname.innerHTML = element.title
-        sataz.innerHTML = satellite.radiansToDegrees(lookAngles.azimuth).toFixed(2)
-        satel.innerHTML = satellite.radiansToDegrees(lookAngles.elevation).toFixed(2)
-        satrange.innerHTML = lookAngles.rangeSat.toFixed(0)
-
-        var satrise = new dayjs(element.next_pass.satrise)
-        var satset = new dayjs(element.next_pass.satset)
-        var satmax = new dayjs(element.next_pass.satmax)
-
-        nextpassaos.innerHTML = satrise.utc().format('YYYY/MM/DD HH:mm')
-        nextpassmax.innerHTML = satmax.utc().format('YYYY/MM/DD HH:mm')
-        nextpasslos.innerHTML = satset.utc().format('YYYY/MM/DD HH:mm')
-        maxel.innerHTML = element.next_pass.maxel.toFixed(2)
-
-        var difference = satrise.toDate().getTime() - (new Date().getTime())
-
-        var hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        var minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-
-        countdown.innerHTML = hours.toString().padStart(2, '0') + ":" + minutes.toString().padStart(2, '0');
-
-
-        satObject.row = newRow
-        satellites.push(satObject)
-
-        if (first == 0) {
-          selectSatellite(satObject.marker);
-          first = 1;
-        }
-      }
-    });
-
-    updateLoop();
-  }
-
-  function sortTable(column) {
-    var rows, switching, i, x, y, shouldSwitch;
-    //table = document.getElementById("myTable");
-    switching = true;
-    /* Make a loop that will continue until
-    no switching has been done: */
-    while (switching) {
-      // Start by saying: no switching is done:
-      switching = false;
-      rows = table.rows;
-      /* Loop through all table rows (except the
-      first, which contains table headers): */
-      for (i = 1; i < (rows.length - 1); i++) {
-        // Start by saying there should be no switching:
-        shouldSwitch = false;
-        /* Get the two elements you want to compare,
-        one from current row and one from the next: */
-        x = rows[i].getElementsByTagName("TD")[column];
-        y = rows[i + 1].getElementsByTagName("TD")[column];
-        // Check if the two rows should switch place:
-        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-          // If so, mark as a switch and break the loop:
-          shouldSwitch = true;
-          break;
-        }
-      }
-      if (shouldSwitch) {
-        /* If a switch has been marked, make the switch
-        and mark that a switch has been done: */
-        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-        switching = true;
-      }
-    }
-  }
-
-  function htmlDecode(input) {
-    var doc = new DOMParser().parseFromString(input, "text/html");
-    return doc.documentElement.textContent;
-  }
-
-  function updateLoop() {
-
-    sortTable(5);
-
-    count = 1;
-    needUpdate = 0;
-
-    satellites.forEach(element => {
-      var satdata = updateSat(element.satrec, new Date())
-
-      positionGd = satdata[0]
-      lookAngles = satdata[1]
-
-      var lat = satellite.radiansToDegrees(positionGd.latitude);
-      var lon = satellite.radiansToDegrees(positionGd.longitude);
-
-      element.marker.setLatLng([lat, lon]).update()
-
-
-      if (selectedSatellite.title != element.title) {
-        if (element.marker.options.icon.options.iconUrl.search("satellite_inactive") == -1) {
-          element.marker.setIcon(outRangeIcon)
-        }
-      }
-
-      for (var x = 0; x < table.rows.length; x++) {
-        if (htmlDecode(table.rows[x].cells[0].innerHTML) == element.title) {
-
-          if (satellite.radiansToDegrees(lookAngles.elevation) > 0) {
-            table.rows[x].cells[0].style.backgroundColor = "green";
-          }
-          else {
-            table.rows[x].cells[0].style.backgroundColor = 'grey';
-          }
-
-          table.rows[x].cells[1].innerHTML = satellite.radiansToDegrees(lookAngles.azimuth).toFixed(2)
-          table.rows[x].cells[2].innerHTML = satellite.radiansToDegrees(lookAngles.elevation).toFixed(2)
-          table.rows[x].cells[3].innerHTML = lookAngles.rangeSat.toFixed(2)
-
-          var satrise = new dayjs(element.all_data.next_pass.satrise)
-          var satset = new dayjs(element.all_data.next_pass.satset)
-          var satmax = new dayjs(element.all_data.next_pass.satmax)
-
-          if (satset < new dayjs()) {
-            console.log("need update")
-            needUpdate = 1;
-          }
-
-          var difference = satrise.toDate().getTime() - (new Date().getTime())
-
-          var hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-          var minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-
-          //countdown.innerHTML = hours + ":" + minutes;
-
-          table.rows[x].cells[4].innerHTML = hours.toString().padStart(2, '0') + ":" + minutes.toString().padStart(2, '0');
-          table.rows[x].cells[5].innerHTML = satrise.utc().format('YYYY/MM/DD HH:mm')
-          table.rows[x].cells[6].innerHTML = satmax.utc().format('YYYY/MM/DD HH:mm')
-          table.rows[x].cells[7].innerHTML = satset.utc().format('YYYY/MM/DD HH:mm')
-          table.rows[x].cells[8].innerHTML = element.all_data.next_pass.maxel.toFixed(2)
-        }
-      }
-
-      count += 1
-    });
-
-    if (needUpdate == 1) {
-      updateSatelliteList();
-    }
-
-    // update selected satellite properties
-    updateSelectedSatellite()
-
-    setTimeout(updateLoop, 1000);
-  }
-
-  function getSatelliteList() {
-    $.ajax({
-      url: "/browser/satellite_data/1",
-      type: 'GET',
-      dataType: 'json',
-      success: function (res) {
-        initMap(res)
-      }
-    }).then(function () {
-      //setTimeout(update, 1000); 
-    });
-  }
-
-  function updateSatelliteList() {
-    console.log("Update Satellite Data")
-    $.ajax({
-      url: "/browser/satellite_data/1",
-      type: 'GET',
-      dataType: 'json',
-      success: function (res) {
-        updateData(res)
-      }
-    }).then(function () {
-      //setTimeout(update, 1000); 
-    });
-
-  }
-
-  $(document).ready(function () {
-    getSatelliteList();
-
-    /* test */
-
-
-  });
-
-</script>
+<script src="/static/js/websocket.js"></script>
+<script src="/static/js/rotator.js"></script>
+<script src="/static/js/helper_functions.js"></script>
+<script src="/static/js/satellite_tracker.js"></script>
 
 {% endblock %}
