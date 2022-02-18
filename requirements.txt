@@ -15,7 +15,6 @@ itsdangerous==2.1.0
 Jinja2==3.0.3
 jplephem==2.17
 MarkupSafe==2.1.0
-numpy==1.19.5
 python-apt==2.2.1
 requests==2.25.1
 RPi.GPIO==0.7.0
