@@ -4,6 +4,7 @@ from app.models import Satellite, SatelliteCollection, SatelliteCollectionAssign
 from app.forms import CreateCollectionForm, AddSatelliteCollectionForm
 from sqlalchemy import and_
 from app import config
+import requests
 
 from app.satellite_functions import calc_current_pos, get_next_pass, get_orbit
 
@@ -44,6 +45,16 @@ def satellite_data(collection_id):
     data['success'] = True
     return jsonify(data)
 
+
+@app.route('/browser/tle_api/<norad_id>')
+def tle_api(norad_id):  
+    req = requests.get("https://db.satnogs.org/api/tle/?format=json&norad_cat_id=" + norad_id)
+
+    if req.status_code == 200:        
+        data = req.json()
+        return jsonify(data)
+
+    return jsonify([{}])
 
     
 

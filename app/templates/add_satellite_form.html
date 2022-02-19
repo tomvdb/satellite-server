@@ -63,7 +63,7 @@
         }
         else {
             $.ajax({
-                url: "https://db.satnogs.org/api/tle/?format=json&norad_cat_id=" + noradid,
+                url: "/browser/tle_api/" + noradid,
                 type: 'GET',
                 dataType: 'json',
                 success: function (res) {

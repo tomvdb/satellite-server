@@ -49,6 +49,18 @@ Once you satellite is added you need to add it to a collection. Currently the "D
 
 Go back to the site home and your satellite will now show. You can select it to get more details and show the orbit and next pass.
 
+# Updating TLE files
+
+```
+python update_tle.py
+```
+
+Its recommended to schedule that file via cron (no more than once a day)
+
+# Security
+
+This has not been designed to be exposed to the internet. Don't do it!
+
 # Rotator Control
 
 This is still a work in progress, but essentially I have [Node-Red](https://nodered.org/) installed on the same pi. My flow contains a websocket component that listens for az/el requests. More information on this soon.
