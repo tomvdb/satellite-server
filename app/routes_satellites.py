@@ -4,7 +4,7 @@ from app.models import Satellite, SatelliteCollection, SatelliteCollectionAssign
 from datetime import datetime
 from skyfield.api import load, wgs84, EarthSatellite, Distance
 from app.forms import CreateSatelliteForm
-
+from app import config
 from app.satellite_functions import calc_future_passes, get_satellite_record
 
 
@@ -128,7 +128,7 @@ def view_satellite(satellite_id):
         return redirect(url_for('view_satellites'))        
 
     # get default observer
-    future_passes = calc_future_passes(satellite.satellite_tle0, satellite.satellite_tle1, satellite.satellite_tle2, float(config['qty_latitude']), float(config['qty_longitude']), 10, 5)
+    future_passes = calc_future_passes(satellite.satellite_tle0, satellite.satellite_tle1, satellite.satellite_tle2, float(config.config_data['qth_latitude']), float(config.config_data['qth_longitude']), 10, 5)
 
     print(future_passes)
     

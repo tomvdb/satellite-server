@@ -10,7 +10,7 @@ url = "https://db.satnogs.org/api/tle/?format=json&norad_cat_id="
 for sat in satellites:
     norad_id = sat.satellite_norad_id
 
-    if len(norad_id) > 0:
+    if len(str(norad_id)) > 0:
         req = requests.get(url + str(norad_id))
 
         if req.status_code == 200:
