@@ -10,6 +10,8 @@ The concept behind the satellite server is to have a central point to do satelli
 
 Use [Raspberry PI Imager](https://www.raspberrypi.com/software/) to flash Raspberry PI OS Lite (tested with 2022-01-28 release)
 
+You might want to enable ssh but putting an empty file on the sdcard called ssh (no extension)
+
 Once the PI has booted you need to install the following dependencies:
 
 ```
@@ -68,6 +70,10 @@ This is still a work in progress, but essentially I have [Node-Red](https://node
 # Radio Control
 
 Still working on this bit, but will be similar to rotator control. More information coming on this soon.
+
+# Known Issues
+
+Lots, but a major one is that it doesn't deal well with geosynchronous satellites yet (atleast on the map section)
 
 # Credit
 Polar Chart code is mostly from the [Satnogs System](https://satnogs.org/)
