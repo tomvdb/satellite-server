@@ -13,7 +13,7 @@ function connectRotator()
 
     rotator_header.innerHTML = "Rotator Control <span class='badge bg-danger'>Connecting</span>";
 
-    connectWS("ws://192.168.0.250:1880/ws/rotator", rotatorConnectionOpen, rotatorConnectionClosed, rotatorConnectionMessageReceived);
+    connectWS("ws://localhost:1880/ws/rotator", rotatorConnectionOpen, rotatorConnectionClosed, rotatorConnectionMessageReceived);
   }
   catch (err) {
     console.log("Couldn't connect to rotator websocket")
