@@ -1,8 +1,15 @@
-# satellite-server
+# Satellite Server
 
 **Warning: This is still very much a work in progress**
 
-The concept behind the satellite server is to have a central point to do satellite tracking. A raspberry pi acts as the server giving a browser view of satellite tracking. It also provides a central point for management of satellite TLE data.
+Satellite Server provides a satellite tracking system that runs on a Raspberry PI. Setup a single satellite server to manage your TLE collections and make it available to other satellite applications. Also includes a tracking GUI with rotator control.
+
+# Features
+
+- Browser based Tracking and Rotator Control
+- Download specific satellite TLE automatically from the [Satnogs DB](https://db.satnogs.org/) by only specifying a Norad ID (uses api)
+- Load your own TLE parameters, helpfull for newly launched satellites
+- Sort satellites of interest in various collections and make those collections available to other programs such as satpc32 and gpredict. 
 
 ![overview](images/overview.png)
 
@@ -65,7 +72,13 @@ This has not been designed to be exposed to the internet. Don't do it!
 
 # Rotator Control
 
-This is still a work in progress, but essentially I have [Node-Red](https://nodered.org/) installed on the same pi. My flow contains a websocket component that listens for az/el requests. More information on this soon.
+Rotator and Radio control is done via [Node-Red](https://nodered.org/) which is installed on the same Raspberry PI. The tracking application will attempt to connect to a websocket on [ws://localhost:1880/ws/rotator](ws://localhost:1880/ws/rotator). Any azimuth/elevation data received via the websocket will be displayed and any azimuth/elevation data sent will be passed to node-red via the websocket. This allows you to make a node that can control your rotator (or do various other things with the data).
+
+A simple starter node-red flow template is located in the nodered_flow_examples. This flow contains the websocket components and a few basic functions. You can expand this flow to control your rotator and receive data from your rotator.
+
+![overview](images/node_red_basic.png)
+
+Send me your node-red flow examples for your rotator control and I will add it into the repo.
 
 # Radio Control
 
@@ -73,9 +86,17 @@ Still working on this bit, but will be similar to rotator control. More informat
 
 # Known Issues
 
-Lots, but a major one is that it doesn't deal well with geosynchronous satellites yet (atleast on the map section)
+Lots, its a work in progress. Use the Issues section to report your issues.
+
+# Support
+
+Please help test and report feature requests and bugs under the [Issues section](https://github.com/tomvdb/satellite-server/issues)
+
+You can support this project by [Buying me a Coffee!](https://www.buymeacoffee.com/zr6tg)
 
 # Credit
-Polar Chart code is mostly from the [Satnogs System](https://satnogs.org/)
+Inital Polar Chart Code is from the [Satnogs System](https://satnogs.org/)
+
+Inspiration and Concepts from [gpredict](http://gpredict.oz9aec.net/)
 
 <a href="https://www.flaticon.com/free-icons/satellite" title="satellite icons">Satellite icons created by Freepik - Flaticon</a>
