@@ -1,0 +1,162 @@
+[
+    {
+        "id": "0d2779ba14e375b5",
+        "type": "tab",
+        "label": "Satellite Server Control",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "6b8438d5e9a11a22",
+        "type": "websocket in",
+        "z": "0d2779ba14e375b5",
+        "name": "",
+        "server": "70c045e4549401f7",
+        "client": "",
+        "x": 320,
+        "y": 260,
+        "wires": [
+            [
+                "44b44287fc260a5b"
+            ]
+        ]
+    },
+    {
+        "id": "0d0420f25d82e593",
+        "type": "websocket out",
+        "z": "0d2779ba14e375b5",
+        "name": "",
+        "server": "70c045e4549401f7",
+        "client": "",
+        "x": 860,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "aa57fdb47adb550d",
+        "type": "function",
+        "z": "0d2779ba14e375b5",
+        "name": "Update From Rotator",
+        "func": "// update this function with code to read from your rotator\nvar az_value = 179;\nvar el_value = 50\n\nvar newAzimuth = { payload: { 'az' : az_value, 'el' : el_value } }\n\nreturn newAzimuth;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 620,
+        "y": 440,
+        "wires": [
+            [
+                "0d0420f25d82e593"
+            ]
+        ]
+    },
+    {
+        "id": "8c724718ab717d61",
+        "type": "inject",
+        "z": "0d2779ba14e375b5",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "2",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 370,
+        "y": 440,
+        "wires": [
+            [
+                "aa57fdb47adb550d"
+            ]
+        ]
+    },
+    {
+        "id": "666ef6429cf7ae1f",
+        "type": "function",
+        "z": "0d2779ba14e375b5",
+        "name": "Seperate Request",
+        "func": "// This function outputs the requested azimuth and elevation\n// from the satellite server. You need to add nodes after this\n// which will control your rotator\n\nvar az = msg.payload.az\nvar el = msg.payload.el\n\nvar newAzimuth = { payload: az }\nvar newElevation = { payload: el }\n\nreturn [newAzimuth, newElevation]",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 670,
+        "y": 260,
+        "wires": [
+            [
+                "ce162e92462be6d4"
+            ],
+            [
+                "33cbdf3e4e339bc4"
+            ]
+        ]
+    },
+    {
+        "id": "44b44287fc260a5b",
+        "type": "json",
+        "z": "0d2779ba14e375b5",
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 490,
+        "y": 260,
+        "wires": [
+            [
+                "666ef6429cf7ae1f"
+            ]
+        ]
+    },
+    {
+        "id": "ce162e92462be6d4",
+        "type": "debug",
+        "z": "0d2779ba14e375b5",
+        "name": "Set Azimuth",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 870,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "33cbdf3e4e339bc4",
+        "type": "debug",
+        "z": "0d2779ba14e375b5",
+        "name": "Set Elevation",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 870,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "70c045e4549401f7",
+        "type": "websocket-listener",
+        "path": "/ws/rotator",
+        "wholemsg": "false"
+    }
+]

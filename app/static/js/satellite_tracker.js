@@ -27,7 +27,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 var table = document.getElementById("satellitelist");
 
-
 // search for satellite object in satellite list via title
 function getSatelliteByTitle(arr, value) {
   for (var i = 0, iLen = arr.length; i < iLen; i++) {
@@ -41,12 +40,86 @@ function getSatelliteByTitle(arr, value) {
 function calcSatellitePositions(satrec, dateobject) {
   var gmst = satellite.gstime(dateobject);
   var positionAndVelocity = satellite.propagate(satrec, dateobject);
+
   var positionEci = positionAndVelocity.position;
   var velocityEci = positionAndVelocity.velocity;
   var positionGd = satellite.eciToGeodetic(positionEci, gmst);
   var positionEcf = satellite.eciToEcf(positionEci, gmst);
   var lookAngles = satellite.ecfToLookAngles(observerGd, positionEcf);
-  return [positionGd, lookAngles]
+  var positionEcf = satellite.eciToEcf(positionEci, gmst);
+  //var velocityEcf = satellite.eciToEcf(velocityEci, gmst); 
+  var observerEcf = satellite.geodeticToEcf(observerGd);
+  var observerEci = satellite.ecfToEci(observerEcf, gmst);
+
+  var dopplerFactorEci = satellite.dopplerFactor(observerEci, positionEci, velocityEci);
+
+  return [positionGd, lookAngles, dopplerFactorEci]
+}
+
+function calcNextPass(satrec) {
+
+  if (isGeostationary(satrec)) {
+    return { 'aos': null, 'los': null, 'maxel_dt': null, 'max_el': 0, 'start_az': 0, 'path': [] }
+  }
+
+  var start = new dayjs(new Date())
+  var end = start.add(2, 'd')
+
+  console.log(start)
+  console.log(end)
+  var prevLat = 0;
+  var prevLon = 0;
+
+  var aos_dt = null
+  var los_dt = null
+  var maxel_dt = null
+  var max_el = -1
+  var start_az = -1
+  var prev_el = -1
+
+  var path = []
+
+  for (var t = start; t < end; t = t.add(20, 's')) {
+    var position = calcSatellitePositions(satrec, t.toDate())
+
+    //console.log(position)
+    var elevation = satellite.radiansToDegrees(position[1].elevation)
+    var azimuth = satellite.radiansToDegrees(position[1].azimuth)
+
+    //console.log(elevation)
+
+    if (elevation > 0) {
+      // pass started
+      if (prev_el < 0) {
+        console.log("sat rise")
+        max_el = elevation
+        start_az = azimuth
+        aos_dt = t
+      }
+
+      // determine highest point
+      if (elevation > max_el) {
+        max_el = elevation
+        maxel_dt = t
+      }
+
+      newLat = satellite.radiansToDegrees(position[0].latitude);
+      newLon = satellite.radiansToDegrees(position[0].longitude)
+
+      path.push([newLat, newLon])
+    }
+    else {
+      // have we reached end of the pass
+      if (prev_el > 0) {
+        los_dt = t;
+        break;
+      }
+    }
+
+    prev_el = elevation;
+  }
+
+  return { 'aos': aos_dt, 'los': los_dt, 'maxel_dt': maxel_dt, 'max_el': max_el, 'start_az': start_az, 'path': path }
 }
 
 // update satellite data from server (called when next pass is over)
@@ -58,97 +131,201 @@ function updateData(jsondata) {
   jsondata.satellites.forEach(element => {
     for (var i = 0, iLen = satellites.length; i < iLen; i++) {
       if (satellites[i].title == element.title) {
-        var nextpass = []
-        for (var x = 0; x < element.next_pass.passdata.length; x++) {
-          nextpass.push([element.next_pass.passdata[x].latitude, element.next_pass.passdata[x].longitude])
-        }
-        satellites[i].next_pass_data = nextpass
-        satellites[i].all_data = element
+        var satrec = satellite.twoline2satrec(element.tle1, element.tle2);
+        satellites[i].next_pass_data = calcNextPass(satrec)
         break;
       }
     }
   })
 };
 
+/*
+Arccosine implementation. 
+
+Returns a value between zero and two pi.
+Borrowed from gsat 0.9 by Xavier Crehueras, EB3CZS.
+Optimized by Alexandru Csete.
+*/
+function arccos(x, y) {
+  if (x && y) {
+    if (y > 0.0)
+      return Math.acos(x / y);
+    else if (y < 0.0)
+      return pi + Math.acos(x / y);
+  }
+
+  return 0.0;
+}
+
+/* 
+Range circle calculations.
+
+Borrowed from gsat 0.9.0 by Xavier Crehueras, EB3CZS
+who borrowed from John Magliacane, KD2BD.
+Optimized by Alexandru Csete and William J Beksi.
+*/
+function generateFootprint(satrec) {
+  pos = calcSatellitePositions(satrec, new Date())
+
+  var xkmper = 6.378135e3;
+  var pi = 3.1415926535898; /* Pi */
+  var pio2 = 1.5707963267949; /* Pi/2 */
+
+  // not sure if this is 100% correct, but it looks right
+  var footprint = 12756.33 * Math.acos(xkmper / (xkmper + pos[0].height))
+
+  var beta = (0.5 * footprint) / xkmper;
+  var ssplat = pos[0].latitude
+  var ssplon = pos[0].longitude
+
+  var points = [];
+
+  var lat = 0;
+  var lon = 0;
+
+  for (azi = 0; azi < 360; azi += 1) {
+    azimuth = satellite.degreesToRadians(azi);
+    lat = Math.asin(Math.sin(ssplat) * Math.cos(beta) + Math.cos(azimuth) * Math.sin(beta)
+      * Math.cos(ssplat));
+    num = Math.cos(beta) - (Math.sin(ssplat) * Math.sin(lat));
+    dem = Math.cos(ssplat) * Math.cos(lat);
+
+    if (azi == 0 && (beta > pio2 - ssplat))
+      lon = ssplon + pi;
+
+    else if (azi == 180 && (beta > pio2 + ssplat))
+      lon = ssplon + pi;
+
+    else if (Math.abs(num / dem) > 1.0)
+      lon = ssplon;
+
+    else {
+      if ((180 - azi) >= 0)
+        lon = ssplon - arccos(num, dem);
+      else
+        lon = ssplon + arccos(num, dem);
+    }
+
+    points.push([satellite.radiansToDegrees(lat), satellite.radiansToDegrees(lon)]);
+  }
+
+
+  return points;
+}
+
+function dopplerDiff(dopplerFactor, frequency) {
+  dop100mhz = Math.round(100 * dopplerFactor * 1000000)
+  dop = dop100mhz - 100000000
+  return dop
+}
 
 function updateSelectedSatellite() {
   if (selectedSatellite == null)
     return
 
+  layerGroup.clearLayers();
+
   satelliteData = selectedSatellite;
 
   var satdata = calcSatellitePositions(satelliteData.satrec, new Date())
 
+
   var positionGd = satdata[0]
   var lookAngles = satdata[1]
+  var doppler = satdata[2]
+
+  dopp = dopplerDiff(doppler, 100)
 
   // satellite properties
   prop_title.innerHTML = satelliteData.title
   prop_az.innerHTML = satellite.radiansToDegrees(lookAngles.azimuth).toFixed(2)
   prop_el.innerHTML = satellite.radiansToDegrees(lookAngles.elevation).toFixed(2)
-  prop_range.innerHTML = lookAngles.rangeSat.toFixed(0)
 
-  var satrise = new dayjs(satelliteData.all_data.next_pass.satrise)
-
-  var difference = satrise.toDate().getTime() - (new Date().getTime())
-
-  var hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  var minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-
-  if (hours >= 0 && minutes >= 0) {
-    prop_countdown.innerHTML = hours.toString().padStart(2, '0') + ":" + minutes.toString().padStart(2, '0');
+  if (satelliteData.prevRange == null) {
+    prop_range.innerHTML = lookAngles.rangeSat.toFixed(0) + " (?)"
   }
   else {
-    prop_countdown.innerHTML = '<span class="badge bg-success">Now</span>';
+    if (satelliteData.prevRange > lookAngles.rangeSat) {
+      prop_range.innerHTML = lookAngles.rangeSat.toFixed(0) + " (-)"
+      prop_dopup.innerHTML = dop + "Hz"
+    }
+    else {
+      prop_range.innerHTML = lookAngles.rangeSat.toFixed(0) + " (+)"
+      prop_dopup.innerHTML = (-1 * dop) + "Hz"
+    }
   }
 
+  selectedSatellite.prevRange = lookAngles.rangeSat
 
-  // draw next pass
-  layerGroup.clearLayers();
-  var polyline = L.polyline(satelliteData.next_pass_data).arrowheads({ size: '20px', frequency: 'endonly' });
-  polyline.addTo(layerGroup);
+  // draw footprint
+  footprintpoints = generateFootprint(satelliteData.satrec);
+  var footprint = L.polygon(footprintpoints);
+  footprint.addTo(layerGroup);
 
-  // draw orbit
-  orbit = []
-  var start = new dayjs(new Date())
-  var end = new dayjs(new Date(satelliteData.all_data.next_pass.satrise))
+  if (isGeostationary(satelliteData.satrec) == false) {
+    var satrise = satelliteData.next_pass_data.aos;
 
-  var prevLat = 0;
-  var prevLon = 0;
+    var difference = satrise.toDate().getTime() - (new Date().getTime())
 
-  for (var t = start; t < end; t = t.add(20, 's')) {
-    var position = calcSatellitePositions(satelliteData.satrec, t.toDate())
+    var hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    var minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
 
-    newLat = satellite.radiansToDegrees(position[0].latitude);
-    newLon = satellite.radiansToDegrees(position[0].longitude)
-
-    if (Math.abs(newLat - prevLat) > 10) {
-      var polyline = L.polyline(orbit, { color: 'black' });
-      polyline.addTo(layerGroup);
-      orbit = []
+    if (hours >= 0 && minutes >= 0) {
+      prop_countdown.innerHTML = hours.toString().padStart(2, '0') + ":" + minutes.toString().padStart(2, '0');
+    }
+    else {
+      prop_countdown.innerHTML = '<span class="badge bg-success">Now</span>';
     }
 
-    if (Math.abs(newLon - prevLon) > 10) {
-      var polyline = L.polyline(orbit, { color: 'black' });
-      polyline.addTo(layerGroup);
-      orbit = []
+    // draw next pass
+    var polyline = L.polyline(satelliteData.next_pass_data.path).arrowheads({ size: '20px', frequency: 'endonly' });
+    polyline.addTo(layerGroup);
+
+    // draw orbit
+    orbit = []
+    var start = new dayjs(new Date())
+    var end = satelliteData.next_pass_data.aos
+
+    var prevLat = 0;
+    var prevLon = 0;
+
+    for (var t = start; t < end; t = t.add(20, 's')) {
+      var position = calcSatellitePositions(satelliteData.satrec, t.toDate())
+
+      newLat = satellite.radiansToDegrees(position[0].latitude);
+      newLon = satellite.radiansToDegrees(position[0].longitude)
+
+      if (Math.abs(newLat - prevLat) > 10) {
+        var polyline = L.polyline(orbit, { color: 'black' });
+        polyline.addTo(layerGroup);
+        orbit = []
+      }
+
+      if (Math.abs(newLon - prevLon) > 10) {
+        var polyline = L.polyline(orbit, { color: 'black' });
+        polyline.addTo(layerGroup);
+        orbit = []
+      }
+
+      orbit.push([newLat, newLon])
+
+      prevLat = satellite.radiansToDegrees(position[0].latitude)
+      prevLon = satellite.radiansToDegrees(position[0].longitude)
     }
-
-    orbit.push([newLat, newLon])
-
-    prevLat = satellite.radiansToDegrees(position[0].latitude)
-    prevLon = satellite.radiansToDegrees(position[0].longitude)
+    var polyline = L.polyline(orbit, { color: 'black' });
+    polyline.addTo(layerGroup);
   }
-  var polyline = L.polyline(orbit, { color: 'black' });
-  polyline.addTo(layerGroup);
+  else {
+    prop_countdown.innerHTML = "N/A"
+  }
 
   // draw polar graph
   var tleLine1 = satelliteData.tle1
   var tleLine2 = satelliteData.tle2
 
   var timeframe = {
-    start: new dayjs(new Date(satelliteData.all_data.next_pass.satrise)),
-    end: new dayjs(new Date(satelliteData.all_data.next_pass.satset))
+    start: new dayjs(new Date(satelliteData.next_pass_data.aos)),
+    end: new dayjs(new Date(satelliteData.next_pass_data.los))
   };
 
 
@@ -159,10 +336,44 @@ function updateSelectedSatellite() {
   };
 
 
+  // send rotator position
+  if ($("#rotatorEnabled").is(':checked')) {
+
+    var az = satellite.radiansToDegrees(lookAngles.azimuth).toFixed(2)
+    var el = satellite.radiansToDegrees(lookAngles.elevation).toFixed(2)
+
+    // only send if elevation > 0
+    // TODO: improve this to handle with 0 - 180 elevation rotator (ie. flip)
+    if (el > 0) {
+      rot_requested_az.innerHTML = az;
+      rot_requested_el.innerHTML = el;
+
+      if (rotatorConnected)
+      {
+        var rotatorData = { 'az' : satellite.radiansToDegrees(lookAngles.azimuth), 'el' : satellite.radiansToDegrees(lookAngles.elevation)}
+        sendWS(rotatorData);
+      }
+    }
+    else
+    {
+      rot_requested_az.innerHTML = satelliteData.next_pass_data.start_az.toFixed(2)
+      rot_requested_el.innerHTML = 0;
+
+      if (rotatorConnected)
+      {
+        var rotatorData = { 'az' : satelliteData.next_pass_data.start_az, 'el' : 0}
+        sendWS(rotatorData);
+      }
+
+    }
+  }
+
+  
+  // update polar graph
   var polarPlotSVG = calcPolarPlotSVG(timeframe,
     groundstation,
     tleLine1,
-    tleLine2);
+    tleLine2, isGeostationary(satelliteData.satrec), { 'az' : azActual, 'el' : elActual });
 
   var based = '<path fill="none" stroke="black" stroke-width="1" d="M 0 -90 v 180 M -90 0 h 180"></path> \
           <circle fill="none" stroke="black" cx="0" cy="0" r="30"></circle> \
@@ -186,19 +397,6 @@ function updateSelectedSatellite() {
   $('svg#polar').html(based);
   $('svg#polar').append(polarPlotSVG);
 
-  // send rotator position
-  if ($("#rotatorEnabled").is(':checked')) {
-    var az = satellite.radiansToDegrees(lookAngles.azimuth).toFixed(2)
-    var el = satellite.radiansToDegrees(lookAngles.elevation).toFixed(2)
-
-    // only send if elevation > 0
-    // TODO: improve this to handle with 0 - 180 elevation rotator (ie. flip)
-    if (el > 0) {
-      rot_requested_az.innerHTML = az;
-      rot_requested_el.innerHTML = el;
-      sendWS(lookAngles)
-    }
-  }
 }
 
 function selectSatellite(marker) {
@@ -217,6 +415,14 @@ function selectSatellite(marker) {
     selectedSatellite = satelliteData
     updateSelectedSatellite();
   }
+}
+
+function isGeostationary(satrec) {
+
+  if (satrec.no < 0.005)
+    return true;
+  else
+    return false;
 }
 
 function initMap(jsondata) {
@@ -265,11 +471,15 @@ function initMap(jsondata) {
 
       var satrec = satellite.twoline2satrec(element.tle1, element.tle2);
 
+      console.log(element.title)
+      console.log("Geostationary Check");
+      console.log(satrec.no)
+      console.log(isGeostationary(satrec));
+
       var satdata = calcSatellitePositions(satrec, new Date())
 
       var positionGd = satdata[0]
       var lookAngles = satdata[1]
-
 
       var lat = satellite.radiansToDegrees(positionGd.latitude);
       var lon = satellite.radiansToDegrees(positionGd.longitude);
@@ -282,23 +492,7 @@ function initMap(jsondata) {
       satObject.marker.setLatLng([lat, lon]).update()
       satObject.satrec = satrec
 
-
-      var nextpass = []
-
-      // just skip it if error
-      if (element.next_pass == null) {
-        return;
-      }
-
-      for (var x = 0; x < element.next_pass.passdata.length; x++) {
-        nextpass.push([element.next_pass.passdata[x].latitude, element.next_pass.passdata[x].longitude])
-      }
-
-      satObject.next_pass_data = nextpass
-
-
-      //satObject.orbit_data = orbit
-      satObject.all_data = element
+      satObject.next_pass_data = calcNextPass(satrec)
 
       var newRow = table.insertRow();
       var satname = newRow.insertCell();
@@ -316,25 +510,37 @@ function initMap(jsondata) {
       satel.innerHTML = satellite.radiansToDegrees(lookAngles.elevation).toFixed(2)
       satrange.innerHTML = lookAngles.rangeSat.toFixed(0)
 
-      var satrise = new dayjs(element.next_pass.satrise)
-      var satset = new dayjs(element.next_pass.satset)
-      var satmax = new dayjs(element.next_pass.satmax)
+      if (isGeostationary(satrec) == false) {
+        var satrise = satdata.aos
+        var satset = satdata.los
+        var satmax = satdata.maxel_dt
 
-      nextpassaos.innerHTML = satrise.utc().format('YYYY/MM/DD HH:mm')
-      nextpassmax.innerHTML = satmax.utc().format('YYYY/MM/DD HH:mm')
-      nextpasslos.innerHTML = satset.utc().format('YYYY/MM/DD HH:mm')
-      maxel.innerHTML = element.next_pass.maxel.toFixed(2)
+        if (satrise != null) nextpassaos.innerHTML = satrise.utc().format('YYYY/MM/DD HH:mm')
+        if (satmax != null) nextpassmax.innerHTML = satmax.utc().format('YYYY/MM/DD HH:mm')
+        if (satset != null) nextpasslos.innerHTML = satset.utc().format('YYYY/MM/DD HH:mm')
 
-      var difference = satrise.toDate().getTime() - (new Date().getTime())
+        maxel.innerHTML = satdata.max_el
 
-      var hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      var minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        if (satrise != null) {
+          var difference = satrise.toDate().getTime() - (new Date().getTime())
 
-      if (hours >= 0 && minutes >= 0) {
-        countdown.innerHTML = hours.toString().padStart(2, '0') + ":" + minutes.toString().padStart(2, '0');
+          var hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          var minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+
+          if (hours >= 0 && minutes >= 0) {
+            countdown.innerHTML = hours.toString().padStart(2, '0') + ":" + minutes.toString().padStart(2, '0');
+          }
+          else {
+            countdown.innerHTML = '<span class="badge bg-success">Now</span>';
+          }
+        }
       }
       else {
-        countdown.innerHTML = '<span class="badge bg-success">Now</span>';
+        nextpassaos.innerHTML = "N/A"
+        nextpassmax.innerHTML = "N/A"
+        nextpasslos.innerHTML = "N/A"
+        countdown.innerHTML = "N/A"
+        maxel.innerHTML = satellite.radiansToDegrees(lookAngles.elevation).toFixed(2)
       }
 
       satObject.row = newRow
@@ -349,8 +555,6 @@ function initMap(jsondata) {
 
   updateLoop();
 }
-
-
 
 function updateLoop() {
 
@@ -391,27 +595,41 @@ function updateLoop() {
         table.rows[x].cells[2].innerHTML = satellite.radiansToDegrees(lookAngles.elevation).toFixed(2)
         table.rows[x].cells[3].innerHTML = lookAngles.rangeSat.toFixed(2)
 
-        var satrise = new dayjs(element.all_data.next_pass.satrise)
-        var satset = new dayjs(element.all_data.next_pass.satset)
-        var satmax = new dayjs(element.all_data.next_pass.satmax)
+        if (isGeostationary(element.satrec) == false) {
+          var satrise = element.next_pass_data.aos
+          var satset = element.next_pass_data.los
+          var satmax = element.next_pass_data.maxel_dt
 
-        if (satset < new dayjs()) {
-          console.log("need update")
-          needUpdate = 1;
+          if (satset != null) {
+            if (satset < new dayjs()) {
+              console.log("need update")
+              needUpdate = 1;
+            }
+          }
+
+          if (satrise != null && satset != null && satmax != null) {
+            var difference = satrise.toDate().getTime() - (new Date().getTime())
+            var hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            var minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+
+
+            if (hours >= 0 && minutes >= 0) {
+              table.rows[x].cells[4].innerHTML = hours.toString().padStart(2, '0') + ":" + minutes.toString().padStart(2, '0');
+            }
+            else {
+              table.rows[x].cells[4].innerHTML = '<span class="badge bg-success">Now</span>';
+            }
+            
+            table.rows[x].cells[5].innerHTML = satrise.utc().format('YYYY/MM/DD HH:mm')
+            table.rows[x].cells[6].innerHTML = satmax.utc().format('YYYY/MM/DD HH:mm')
+            table.rows[x].cells[7].innerHTML = satset.utc().format('YYYY/MM/DD HH:mm')
+          }
+
+          table.rows[x].cells[8].innerHTML = element.next_pass_data.max_el.toFixed(2)
         }
-
-        var difference = satrise.toDate().getTime() - (new Date().getTime())
-
-        var hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        var minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-
-        //countdown.innerHTML = hours + ":" + minutes;
-
-        table.rows[x].cells[4].innerHTML = hours.toString().padStart(2, '0') + ":" + minutes.toString().padStart(2, '0');
-        table.rows[x].cells[5].innerHTML = satrise.utc().format('YYYY/MM/DD HH:mm')
-        table.rows[x].cells[6].innerHTML = satmax.utc().format('YYYY/MM/DD HH:mm')
-        table.rows[x].cells[7].innerHTML = satset.utc().format('YYYY/MM/DD HH:mm')
-        table.rows[x].cells[8].innerHTML = element.all_data.next_pass.maxel.toFixed(2)
+        else {
+          table.rows[x].cells[8].innerHTML = satellite.radiansToDegrees(lookAngles.elevation).toFixed(2)
+        }
       }
     }
 
@@ -459,11 +677,6 @@ function updateSatelliteList() {
 $(document).ready(function () {
   getSatelliteList();
 
-  try {
-    connectWS("ws://localhost:1880/ws/rotator", rotatorConnectionOpen, rotatorConnectionClosed, rotatorConnectionMessageReceived);
-  }
-  catch (err) {
-    console.log("Couldn't connect to rotator websocket")
-  }
+  connectRotator();
 
 });

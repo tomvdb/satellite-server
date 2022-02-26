@@ -32,14 +32,10 @@ def satellite_data(collection_id):
     for sat in satCollection:
         satellite = sat.Satellite
         satObject = {}
+        satObject['dbid'] = satellite.satellite_id
         satObject['title'] = satellite.satellite_tle0
         satObject['tle1'] = satellite.satellite_tle1
         satObject['tle2'] = satellite.satellite_tle2
-
-        next_pass = get_next_pass(satellite.satellite_tle0, satellite.satellite_tle1, satellite.satellite_tle2, float(config.config_data['qth_latitude']), float(config.config_data['qth_longitude']), 0)        
-        satObject['next_pass'] = next_pass
-
-
         data['satellites'].append(satObject)
 
     data['success'] = True
