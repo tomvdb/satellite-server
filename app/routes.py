@@ -6,6 +6,9 @@ from app.models import SatelliteCollection
 @app.route('/index')
 def index():
     
-    return render_template('index.html', title='Home')
+    # get available collections
+    collections = SatelliteCollection.query.all()
+
+    return render_template('index.html', title='Home', collections=collections)
 
 

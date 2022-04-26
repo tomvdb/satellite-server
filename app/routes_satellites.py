@@ -7,8 +7,6 @@ from app.forms import CreateSatelliteForm
 from app import config
 from app.satellite_functions import calc_future_passes, get_satellite_record
 
-
-
 @app.route('/view_satellites')
 def view_satellites():    
     satellites = Satellite.query.all()

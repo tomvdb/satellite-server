@@ -8,127 +8,288 @@
 
 {% block content %}
 
-<div class="row">
-  <div class="col-8">
-    <div class="card">
-      <div class="card-body">
-        <div id="map"></div>
-      </div>
-    </div>
-
-    <div class="row gap">
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        Future Passes
-      </div>
-      <div class="card-body">
-        <table id="satellitelist" class="table table-hover table-bordered">
-          <thead>
-            <th>Satellite Name</th>
-            <th>Azimuth</th>
-            <th>Elevation</th>
-            <th>Range</th>
-            <th>Countdown</th>
-            <th>AOS</th>
-            <th>Max</th>
-            <th>LOS</th>
-            <th>Max El</th>
-          </thead>
-          <tbody></tbody>
-
-        </table>
-      </div>
-    </div>
-
+<nav>
+  <div class="nav nav-tabs" id="nav-tab" role="tablist">
+    <button class="nav-link active" id="nav-home-tab" data-bs-toggle="tab" data-bs-target="#nav-home" type="button"
+      role="tab" aria-controls="nav-home" aria-selected="true">Overview</button>
+    <button class="nav-link" id="nav-tracker-tab" data-bs-toggle="tab" data-bs-target="#nav-tracker" type="button"
+      role="tab" aria-controls="nav-tracker" aria-selected="false">Tracker</button>
   </div>
+</nav>
 
-  <div class="col-4">
-    <div class="card">
-      <div class="card-header">
-        <div id="prop_title"></div>
-      </div>
-
-      <div class="card-body">
-        <div class="table-responsive w-100">
-          <table class="table table-bordered">
-
-            <tr>
-              <td><b>Countdown</b></td>
-              <td>
-                <div id="prop_countdown"></div>
-              </td>
-            </tr>
-            <tr>
-              <td><b>Azimuth</b></td>
-              <td>
-                <div id="prop_az"></div>
-              </td>
-            </tr>
-            <tr>
-              <td><b>Elevation</b></td>
-              <td>
-                <div id="prop_el"></div>
-              </td>
-            </tr>
-            <tr>
-              <td><b>Range</b></td>
-              <td>
-                <div id="prop_range"></div>
-              </td>
-            </tr>
-            <tr>
-              <td><b>Doppler@100Mhz</b></td>
-              <td>
-                <div id="prop_dopup"></div>
-              </td>
-            </tr>
-
-          </table>
-          <center><svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="polar" width="80%" height="80%"
-              viewBox="-120 -120 240 240" overflow="hidden"></center>
-          </svg>
-        </div>
-      </div>
-
-    </div>
-
-    <div class="row gap">
-    </div>
-
-    <div class="card">
-      <div class="card-header" id="rotator_header">
-      </div>
-      <div class="card-body">
-
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" value="" id="rotatorEnabled">
-          <label class="form-check-label" for="flexCheckDefault">
-            Enable Rotator 
-          </label>
-        </div>
-        <div class="table table-responsive">
-          <table class="table table-bordered" width=100%>
-            <tr>
-              <td>Requested</td>
-              <td id="rot_requested_az">000.00</td>
-              <td id="rot_requested_el">000.00</td>
-            </tr>
-            <tr>
-              <td>Actual</td>
-              <td id="rot_actual_az">000.00</td>
-              <td id="rot_actual_el">000.00</td>
-            </tr>
-          </table>
-        </div>
-      </div>
-    </div>
-
-
-  </div>
-
+<div class="row gap">
 </div>
+
+<div class="tab-content" id="nav-tabContent">
+  <div class="tab-pane fade show active" id="nav-home" role="tabpanel" aria-labelledby="nav-home-tab">
+
+    <div class="row">
+      <div class="col-8">
+        <div class="card">
+          <div class="card-header container-fluid">
+            <b>Collection: </b><select name="collections" id="collections" onchange="getSatelliteList();">
+              {% for col in collections %}
+              <option value='{{ col.collection_id }}' {% if loop.index==0 %} selected {% endif %}>{{ col.collection_name
+                }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="card-body">
+            <div id="map"></div>
+          </div>
+        </div>
+
+        <div class="row gap">
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            Future Passes
+          </div>
+          <div class="card-body">
+            <table id="satellitelist" class="table table-hover table-bordered">
+              <thead>
+                <th>Satellite Name</th>
+                <th>Azimuth</th>
+                <th>Elevation</th>
+                <th>Range</th>
+                <th>Countdown</th>
+                <th>AOS</th>
+                <th>Max</th>
+                <th>LOS</th>
+                <th>Max El</th>
+                <th></th>
+              </thead>
+              <tbody></tbody>
+
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="col-4">
+        <div class="card">
+          <div class="card-header">
+            <div id="prop_title"></div>
+          </div>
+
+          <div class="card-body">
+            <div class="table-responsive w-100">
+              <table class="table table-bordered">
+
+                <tr>
+                  <td><b>Countdown</b></td>
+                  <td>
+                    <div id="prop_countdown"></div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><b>Azimuth</b></td>
+                  <td>
+                    <div id="prop_az"></div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><b>Elevation</b></td>
+                  <td>
+                    <div id="prop_el"></div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><b>Range</b></td>
+                  <td>
+                    <div id="prop_range"></div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><b>Transmitters</b></td>
+                  <td>
+                  </td>
+                </tr>
+              </table>
+              <center><svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="polar" width="80%" height="80%"
+                  viewBox="-120 -120 240 240" overflow="hidden"></center>
+              </svg>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="row gap">
+        </div>
+
+
+
+      </div>
+
+    </div>
+  </div>
+  <div class="tab-pane fade" id="nav-tracker" role="tabpanel" aria-labelledby="nav-tracker-tab">
+
+    <div class="row">
+      <div class="col-4">
+        <!-- sat info -->
+        <div class="card">
+          <div class="card-header">
+            <div id="prop_tracker_title"></div>
+          </div>
+
+          <div class="card-body">
+            <div class="table-responsive w-100">
+              <table class="table table-bordered">
+
+                <tr>
+                  <td><b>Countdown</b></td>
+                  <td>
+                    <div id="prop_tracker_countdown"></div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><b>Azimuth</b></td>
+                  <td>
+                    <div id="prop_tracker_az"></div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><b>Elevation</b></td>
+                  <td>
+                    <div id="prop_tracker_el"></div>
+                  </td>
+                </tr>
+                <tr>
+                  <td><b>Range</b></td>
+                  <td>
+                    <div id="prop_tracker_range"></div>
+                  </td>
+                </tr>
+              </table>
+              <center><svg xmlns="http://www.w3.org/2000/svg" version="1.1" id="polar_tracker" width="80%" height="80%"
+                  viewBox="-120 -120 240 240" overflow="hidden"></center>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-8">
+        <!-- rotator info -->
+        <div class="card">
+          <div class="card-header" id="rotator_header">
+          </div>
+          <div class="card-body">
+
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" value="" id="rotatorEnabled">
+              <label class="form-check-label" for="flexCheckDefault">
+                Enable Rotator
+              </label>
+            </div>
+            <div class="table table-responsive">
+              <table class="table table-bordered" width=100%>
+                <tr>
+                  <td></td>
+                  <td><b>Azimuth</b></td>
+                  <td><b>Elevation</b></td>
+                </tr>
+                <tr>
+                  <td><b>Requested</b></td>
+                  <td id="rot_requested_az">000.00</td>
+                  <td id="rot_requested_el">000.00</td>
+                </tr>
+                <tr>
+                  <td><b>Actual</b></td>
+                  <td id="rot_actual_az">000.00</td>
+                  <td id="rot_actual_el">000.00</td>
+                </tr>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="row gap">
+        </div>
+
+        <!-- rig info -->
+        <div class="card">
+          <div class="card-header" id="radio_header">
+          </div>
+          <div class="card-body">
+
+            <div class="table table-responsive">
+              <table class="table table-bordered" width=100%>
+                <tr>
+                  <td><b>Transmitter</b></td>
+                  <td>
+                    <div id="prop_tracker_transmitters"></div>
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+              <div class="row gap">
+              </div>
+
+              <div class="table table-responsive">
+                <table class="table table-bordered" width=100%>
+                <tr>
+                  <td width="50%" colspan="2"><center><b>Downlink</b></center></td>
+                  <td width="50%" colspan="2"><center><b>Uplink</b></center></td>
+                </tr>
+                <tr>
+                  <td colspan="2">
+                    <row><center><span class="badge rounded-pill bg-info">Satellite</span><h1><div id="downlink_freq_sat">144.800.000 Hz </div></h1></center></row>
+                    <row><center><h1><div id="downlink_freq_radio">???.???.??? Hz</div></h1><span class="badge rounded-pill bg-success">Radio</span></center></row>
+                  </td>
+                  <td colspan="2">
+                    <row><center><span class="badge rounded-pill bg-info">Satellite</span><h1><div id="uplink_freq_sat">144.800.000 Hz </div></h1></center></row>
+                    <row><center><h1><div id="uplink_freq_radio">???.???.??? Hz</div></h1><span class="badge rounded-pill bg-success">Radio</span></center></row>
+                  </td>
+                </tr>
+                <tr>
+                  <td width="25%"><center><div id="downlink_doppler">-1000 Hz</div></center></td>
+                  <td width="25%"><center><div id="downlink_mode">FM</div></center></td>
+                  <td width="25%"><center><div id="uplink_doppler">-1000 Hz</div></center></td>
+                  <td width="25%"><center><div id="uplink_mode">FM</div></center></td>
+                </tr>
+              </table>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" value="" id="radioEnabled">
+              <label class="form-check-label" for="flexCheckDefault">
+                Enable Radio
+              </label>
+            </div>
+            <div class="table table-responsive">
+              <table class="table table-bordered" width=100%>
+                <tr>
+                  <td></td>
+                  <td><b>Downlink</b></td>
+                  <td><b>Uplink</b></td>
+                </tr>
+                <tr>
+                  <td><b>Requested</b></td>
+                  <td id="radio_requested_downlink">000.000.000 Hz</td>
+                  <td id="radio_requested_uplink">000.000.000 Hz</td>
+                </tr>
+                <tr>
+                  <td><b>Actual</b></td>
+                  <td id="radio_actual_downlink">000.000.000 Hz</td>
+                  <td id="radio_actual_uplink">000.000.000 Hz</td>
+                </tr>
+              </table>
+            </div>
+      
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 
 {% endblock %}
 
@@ -141,6 +302,7 @@
 <script src="/static/js/polar_svg.js"></script>
 <script src="/static/js/websocket.js"></script>
 <script src="/static/js/rotator.js"></script>
+<script src="/static/js/radio.js"></script>
 <script src="/static/js/helper_functions.js"></script>
 <script src="/static/js/satellite_tracker.js"></script>
 

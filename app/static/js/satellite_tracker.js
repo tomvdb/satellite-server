@@ -18,6 +18,7 @@ var once = 0;
 var bounds = L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180));
 var mymap = L.map('map', { center: bounds.getCenter(), maxBounds: bounds, maxBoundsViscosity: 1.0, minZoom: 2, }).setView([0, 0], 2);
 var layerGroup = L.layerGroup().addTo(mymap);
+var satGroup = L.layerGroup().addTo(mymap);
 var observer = L.marker([0, 0], { icon: qth, title: 'Observer' }).addTo(mymap);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -223,23 +224,29 @@ function updateSelectedSatellite() {
   if (selectedSatellite == null)
     return
 
+
+
   layerGroup.clearLayers();
 
   satelliteData = selectedSatellite;
 
   var satdata = calcSatellitePositions(satelliteData.satrec, new Date())
 
-
   var positionGd = satdata[0]
   var lookAngles = satdata[1]
-  var doppler = satdata[2]
+  var dopplerFactor = satdata[2]
 
-  dopp = dopplerDiff(doppler, 100)
 
   // satellite properties
   prop_title.innerHTML = satelliteData.title
+  prop_tracker_title.innerHTML = prop_title.innerHTML
+
   prop_az.innerHTML = satellite.radiansToDegrees(lookAngles.azimuth).toFixed(2)
   prop_el.innerHTML = satellite.radiansToDegrees(lookAngles.elevation).toFixed(2)
+
+  prop_tracker_az.innerHTML = prop_az.innerHTML
+  prop_tracker_el.innerHTML = prop_el.innerHTML
+
 
   if (satelliteData.prevRange == null) {
     prop_range.innerHTML = lookAngles.rangeSat.toFixed(0) + " (?)"
@@ -247,13 +254,15 @@ function updateSelectedSatellite() {
   else {
     if (satelliteData.prevRange > lookAngles.rangeSat) {
       prop_range.innerHTML = lookAngles.rangeSat.toFixed(0) + " (-)"
-      prop_dopup.innerHTML = dop + "Hz"
+      //
     }
     else {
       prop_range.innerHTML = lookAngles.rangeSat.toFixed(0) + " (+)"
-      prop_dopup.innerHTML = (-1 * dop) + "Hz"
+      //prop_tracker_dopup.innerHTML = (-1 * dop) + "Hz"
     }
   }
+
+  prop_tracker_range.innerHTML = prop_range.innerHTML
 
   selectedSatellite.prevRange = lookAngles.rangeSat
 
@@ -276,6 +285,7 @@ function updateSelectedSatellite() {
     else {
       prop_countdown.innerHTML = '<span class="badge bg-success">Now</span>';
     }
+
 
     // draw next pass
     var polyline = L.polyline(satelliteData.next_pass_data.path).arrowheads({ size: '20px', frequency: 'endonly' });
@@ -319,6 +329,8 @@ function updateSelectedSatellite() {
     prop_countdown.innerHTML = "N/A"
   }
 
+  prop_tracker_countdown.innerHTML = prop_countdown.innerHTML
+
   // draw polar graph
   var tleLine1 = satelliteData.tle1
   var tleLine2 = satelliteData.tle2
@@ -348,32 +360,110 @@ function updateSelectedSatellite() {
       rot_requested_az.innerHTML = az;
       rot_requested_el.innerHTML = el;
 
-      if (rotatorConnected)
-      {
-        var rotatorData = { 'az' : satellite.radiansToDegrees(lookAngles.azimuth), 'el' : satellite.radiansToDegrees(lookAngles.elevation)}
+      if (rotatorConnected) {
+        var rotatorData = { 'az': satellite.radiansToDegrees(lookAngles.azimuth), 'el': satellite.radiansToDegrees(lookAngles.elevation) }
         sendWS(rotatorData);
       }
     }
-    else
-    {
+    else {
       rot_requested_az.innerHTML = satelliteData.next_pass_data.start_az.toFixed(2)
       rot_requested_el.innerHTML = 0;
 
-      if (rotatorConnected)
-      {
-        var rotatorData = { 'az' : satelliteData.next_pass_data.start_az, 'el' : 0}
+      if (rotatorConnected) {
+        var rotatorData = { 'az': satelliteData.next_pass_data.start_az, 'el': 0 }
         sendWS(rotatorData);
       }
 
     }
   }
 
-  
+  // update radio data
+  var e = document.getElementById("sel_transmitter");
+
+  if (e != null) {
+    var value = e.options[e.selectedIndex].value;
+    var text = e.options[e.selectedIndex].text;
+
+    transmitter = satelliteData.transmitters[value]
+
+    dop = dopplerDiff(dopplerFactor, 100)
+
+
+    if (transmitter.downlink_low != null) {
+      downlink = transmitter.downlink_low.toString()
+      downlink = downlink.padStart(9, '0')
+      downlink = downlink.substring(0, 3) + "." + downlink.substring(3, 6) + "." + downlink.substring(6) + " Hz"
+      downlink_freq_sat.innerHTML = downlink
+      downlink_mode.innerHTML = transmitter.downlink_mode
+
+      dop = dopplerDiff(dopplerFactor, 100)
+      //prop_tracker_dopup.innerHTML = dop + "Hz"
+
+      doppler_amount = (dop / 100) * (transmitter.downlink_low / 1000000)     
+
+      if (satelliteData.prevRange > lookAngles.rangeSat) 
+      {}
+      else
+      {
+        doppler_amount = doppler_amount * -1;
+      }
+      
+      downlink_doppler.innerHTML = Math.round(doppler_amount) + " Hz"
+
+      downlink_doppler_amount = (transmitter.downlink_low + Math.round(doppler_amount)).toString()
+      downlink_doppler_amount = downlink_doppler_amount.padStart(9, '0')
+      downlink_doppler_amount = downlink_doppler_amount.substring(0, 3) + "." + downlink_doppler_amount.substring(3, 6) + "." + downlink_doppler_amount.substring(6) + " Hz"
+      downlink_freq_radio.innerHTML = downlink_doppler_amount
+    }
+    else
+    {
+      downlink_mode.innerHTML = "N/A"
+      downlink_freq_sat.innerHTML = "N/A"      
+      downlink_freq_radio.innerHTML = "N/A"      
+      downlink_doppler.innerHTML = "N/A"
+    }
+
+    if (transmitter.uplink_low != null) {
+      uplink = transmitter.uplink_low.toString()
+      uplink = uplink.padStart(9, '0')
+      uplink = uplink.substring(0, 3) + "." + uplink.substring(3, 6) + "." + uplink.substring(6) + " Hz"
+      uplink_freq_sat.innerHTML = uplink
+      uplink_mode.innerHTML = transmitter.uplink_mode
+
+      doppler_amount = (dop / 100) * (transmitter.uplink_low / 1000000)     
+
+      if (satelliteData.prevRange > lookAngles.rangeSat) 
+      {
+        doppler_amount = doppler_amount * -1;
+      }
+      else
+      {
+      }
+
+      uplink_doppler.innerHTML = Math.round(doppler_amount) + " Hz"
+
+      uplink_doppler_amount = (transmitter.uplink_low + Math.round(doppler_amount)).toString()
+      uplink_doppler_amount = uplink_doppler_amount.padStart(9, '0')
+      uplink_doppler_amount = uplink_doppler_amount.substring(0, 3) + "." + uplink_doppler_amount.substring(3, 6) + "." + uplink_doppler_amount.substring(6) + " Hz"
+      uplink_freq_radio.innerHTML = uplink_doppler_amount
+    }
+    else
+    {
+      uplink_mode.innerHTML = "N/A"
+      uplink_freq_sat.innerHTML = "N/A"      
+      uplink_freq_radio.innerHTML = "N/A"      
+      uplink_doppler.innerHTML = "N/A"
+
+    }
+
+  }
+
+
   // update polar graph
   var polarPlotSVG = calcPolarPlotSVG(timeframe,
     groundstation,
     tleLine1,
-    tleLine2, isGeostationary(satelliteData.satrec), { 'az' : azActual, 'el' : elActual });
+    tleLine2, isGeostationary(satelliteData.satrec), { 'az': azActual, 'el': elActual });
 
   var based = '<path fill="none" stroke="black" stroke-width="1" d="M 0 -90 v 180 M -90 0 h 180"></path> \
           <circle fill="none" stroke="black" cx="0" cy="0" r="30"></circle> \
@@ -396,6 +486,9 @@ function updateSelectedSatellite() {
 
   $('svg#polar').html(based);
   $('svg#polar').append(polarPlotSVG);
+  //$('svg#polar_tracker').html(based);
+  //$('svg#polar_tracker').append(polarPlotSVG);
+  polar_tracker.innerHTML = polar.innerHTML
 
 }
 
@@ -407,12 +500,26 @@ function selectSatellite(marker) {
     marker.setIcon(inRangeIcon)
   }
 
-
   if (satelliteData == null) {
     console.log("error: can't find satellite object")
   }
   else {
     selectedSatellite = satelliteData
+
+    // update transmitters list
+    if (selectedSatellite.transmitters.length > 0) {
+      // build up a selection 
+      transmitter_data = "<select name='sel_transmitter' id='sel_transmitter'>";
+      for (let x = 0; x < selectedSatellite.transmitters.length; x++) {
+        transmitter_data = transmitter_data + "<option value=" + x + ">" + selectedSatellite.transmitters[x].description + "</option>"
+      }
+      transmitter_data += "</select>";
+      prop_tracker_transmitters.innerHTML = transmitter_data;
+    }
+    else {
+      prop_tracker_transmitters.innerHTML = "<b>None Specified</b>";
+    }
+
     updateSelectedSatellite();
   }
 }
@@ -427,7 +534,12 @@ function isGeostationary(satrec) {
 
 function initMap(jsondata) {
   console.log(jsondata);
+
+  // clear data
+  satellites = []
   layerGroup.clearLayers();
+  satGroup.clearLayers();
+  table.innerHTML = ""
 
   observer_lat = jsondata.observer.coordinates[0];
   observer_lon = jsondata.observer.coordinates[1];
@@ -465,16 +577,16 @@ function initMap(jsondata) {
       });
 
 
-      var addedMarker = marker.addTo(mymap)
+      var addedMarker = marker.addTo(satGroup)
 
-      satObject = { 'title': element.title, 'marker': addedMarker, 'tle1': element.tle1, 'tle2': element.tle2 }
+      satObject = { 'dbid': element.dbid, 'title': element.title, 'marker': addedMarker, 'tle1': element.tle1, 'tle2': element.tle2 }
 
       var satrec = satellite.twoline2satrec(element.tle1, element.tle2);
 
-      console.log(element.title)
-      console.log("Geostationary Check");
-      console.log(satrec.no)
-      console.log(isGeostationary(satrec));
+      //console.log(element.title)
+      //console.log("Geostationary Check");
+      //console.log(satrec.no)
+      //console.log(isGeostationary(satrec));
 
       var satdata = calcSatellitePositions(satrec, new Date())
 
@@ -488,12 +600,11 @@ function initMap(jsondata) {
         return;
       }
 
-
       satObject.marker.setLatLng([lat, lon]).update()
       satObject.satrec = satrec
 
       satObject.next_pass_data = calcNextPass(satrec)
-
+      satObject.transmitters = element.transmitters
       var newRow = table.insertRow();
       var satname = newRow.insertCell();
       var sataz = newRow.insertCell();
@@ -504,6 +615,7 @@ function initMap(jsondata) {
       var nextpassmax = newRow.insertCell();
       var nextpasslos = newRow.insertCell();
       var maxel = newRow.insertCell();
+      var info = newRow.insertCell();
 
       satname.innerHTML = element.title
       sataz.innerHTML = satellite.radiansToDegrees(lookAngles.azimuth).toFixed(2)
@@ -543,8 +655,11 @@ function initMap(jsondata) {
         maxel.innerHTML = satellite.radiansToDegrees(lookAngles.elevation).toFixed(2)
       }
 
+      info.innerHTML = "<a href='/view_satellite/" + element.dbid + "'><svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-search' viewBox='0 0 16 16'><path d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/></svg></a>"
       satObject.row = newRow
       satellites.push(satObject)
+
+
 
       if (first == 0) {
         selectSatellite(satObject.marker);
@@ -619,7 +734,7 @@ function updateLoop() {
             else {
               table.rows[x].cells[4].innerHTML = '<span class="badge bg-success">Now</span>';
             }
-            
+
             table.rows[x].cells[5].innerHTML = satrise.utc().format('YYYY/MM/DD HH:mm')
             table.rows[x].cells[6].innerHTML = satmax.utc().format('YYYY/MM/DD HH:mm')
             table.rows[x].cells[7].innerHTML = satset.utc().format('YYYY/MM/DD HH:mm')
@@ -647,8 +762,15 @@ function updateLoop() {
 }
 
 function getSatelliteList() {
+  var e = document.getElementById("collections");
+  var value = e.options[e.selectedIndex].value;
+  var text = e.options[e.selectedIndex].text;
+
+  console.log(value)
+  console.log(text)
+
   $.ajax({
-    url: "/browser/satellite_data/1",
+    url: "/browser/satellite_data/" + value,
     type: 'GET',
     dataType: 'json',
     success: function (res) {
@@ -674,9 +796,15 @@ function updateSatelliteList() {
 
 }
 
+var tabEl = document.querySelector('button[data-bs-toggle="tab"]')
+tabEl.addEventListener('shown.bs.tab', function (event) {
+  mymap.invalidateSize();
+})
+
 $(document).ready(function () {
   getSatelliteList();
 
   connectRotator();
+  connectRadio();
 
 });
